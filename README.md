@@ -1,2 +1,2 @@
 # goNES
-An emulator in pure Go.
+A NES emulator in pure Go.

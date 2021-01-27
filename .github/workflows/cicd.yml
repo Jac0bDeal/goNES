@@ -1,15 +1,9 @@
 name: CICD
 on:
   push:
-    branches:
-    — main
-    — release
-    — development
+    branches: [ $default-branch ]
   pull_request:
-    branches:
-    — main
-    — release
-    — development
+    branches: [ $default-branch ]
 
 jobs:
   test:
