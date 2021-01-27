@@ -1,6 +1,6 @@
 package cpu
 
-import "github.com/Jac0bDeal/goNES/pkg/bus"
+import "github.com/Jac0bDeal/goNES/internal/bus"
 
 // Flag is the possible different status flags for the CPU.
 type Flag uint8
