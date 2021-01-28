@@ -9,8 +9,10 @@ type Bus struct {
 }
 
 // NewBus constructs and returns a Bus instance.
-func NewBus() *Bus {
-	return &Bus{}
+func NewBus(ram [ramSize]uint8) *Bus {
+	return &Bus{
+		ram: ram,
+	}
 }
 
 // Read reads a byte at a given address on the Bus.
@@ -18,9 +20,10 @@ func (b *Bus) Read(address uint16) uint8 {
 	return b.ram[address]
 }
 
-// ReadByteOnly ...
+// ReadByteOnly will be used by diassaembler to read address with mutating state.
+// currently unused.
 func (b *Bus) ReadByteOnly(address uint16) uint8 {
-	return 0
+	return b.Read(address)
 }
 
 // Write writes a byte of data to an address on the Bus.
