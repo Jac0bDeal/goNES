@@ -103,9 +103,15 @@ func (cpu *Mos6502) setStatusFlag(f Flag, v bool) {
 	}
 }
 
-// fetch ..
+// fetch reads the data used by the instruction into the internal
+// fetchedData variable. For instructions using the Implied address
+// mode, there is no data needed so it is skipped here. It also returns
+// the fetched data for convenience.
 func (cpu *Mos6502) fetch() uint8 {
-	return 0
+	if !(cpu.lookup[cpu.opcode].addressMode == imp) {
+		cpu.fetchedData = cpu.bus.Read(cpu.addressAbsolute)
+	}
+	return cpu.fetchedData
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -123,8 +129,8 @@ func (cpu *Mos6502) Clock() {
 		cpu.pc++
 
 		cpu.cycles = instruction.cycles
-		additionalCycleAddr := instruction.addressMode()
-		additionalCycleOp := instruction.operate()
+		additionalCycleAddr := instruction.setAddressMode()
+		additionalCycleOp := instruction.performOp()
 		cpu.cycles += additionalCycleAddr & additionalCycleOp
 
 		cpu.setStatusFlag(U, true)

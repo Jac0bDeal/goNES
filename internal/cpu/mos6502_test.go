@@ -12,11 +12,12 @@ func newTestMos6502() *Mos6502 {
 		bus: bus.NewBus(bus.RAM{}),
 		lookup: mos6502LookupTable{
 			instruction{
-				name: "TST",
-				operate: func() uint8 {
+				operation:   "TOP",
+				addressMode: "TAM",
+				performOp: func() uint8 {
 					return 0
 				},
-				addressMode: func() uint8 {
+				setAddressMode: func() uint8 {
 					return 0
 				},
 				cycles: 0,
