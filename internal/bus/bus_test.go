@@ -9,13 +9,13 @@ import (
 func TestBus_Read(t *testing.T) {
 	tests := []struct {
 		name         string
-		ramState     [ramSize]uint8
+		ramState     RAM
 		address      uint16
 		expectedData uint8
 	}{
 		{
 			name:         "correct data read",
-			ramState:     [ramSize]uint8{0xff},
+			ramState:     RAM{0xff},
 			address:      0x0000,
 			expectedData: 0xff,
 		},
@@ -33,13 +33,13 @@ func TestBus_Read(t *testing.T) {
 func TestBus_ReadByteOnly(t *testing.T) {
 	tests := []struct {
 		name         string
-		ramState     [ramSize]uint8
+		ramState     RAM
 		address      uint16
 		expectedData uint8
 	}{
 		{
 			name:         "correct data read",
-			ramState:     [ramSize]uint8{0xff},
+			ramState:     RAM{0xff},
 			address:      0x0000,
 			expectedData: 0xff,
 		},
@@ -57,24 +57,24 @@ func TestBus_ReadByteOnly(t *testing.T) {
 func TestBus_Write(t *testing.T) {
 	tests := []struct {
 		name             string
-		initialRAMstate  [ramSize]uint8
+		initialRAMstate  RAM
 		address          uint16
 		data             uint8
-		expectedRAMstate [ramSize]uint8
+		expectedRAMstate RAM
 	}{
 		{
 			name:             "write to empty ram succeeds",
-			initialRAMstate:  [ramSize]uint8{},
+			initialRAMstate:  RAM{},
 			address:          0x0000,
 			data:             0xff,
-			expectedRAMstate: [ramSize]uint8{0xff},
+			expectedRAMstate: RAM{0xff},
 		},
 		{
 			name:             "overwrite of ram address succeeds",
-			initialRAMstate:  [ramSize]uint8{0xff},
+			initialRAMstate:  RAM{0xff},
 			address:          0x0000,
 			data:             0x11,
-			expectedRAMstate: [ramSize]uint8{0x11},
+			expectedRAMstate: RAM{0x11},
 		},
 	}
 	for _, tt := range tests {

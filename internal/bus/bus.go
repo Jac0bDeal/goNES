@@ -1,15 +1,19 @@
 package bus
 
-const ramSize = 64 * 1024
+// RAMsize is the size of the bus RAM space.
+const RAMsize = 64 * 1024
+
+// RAM represents the addressable RAM space on the Bus.
+type RAM [RAMsize]uint8
 
 // Bus represents the bus used by the CPU to communicate with other components. It can be
 // read from and written to.
 type Bus struct {
-	ram [ramSize]uint8
+	ram RAM
 }
 
 // NewBus constructs and returns a Bus instance.
-func NewBus(ram [ramSize]uint8) *Bus {
+func NewBus(ram RAM) *Bus {
 	return &Bus{
 		ram: ram,
 	}

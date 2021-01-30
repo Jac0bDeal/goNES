@@ -3,13 +3,14 @@ package cpu
 type instruction struct {
 	name        string
 	operate     func() uint8
-	addressMode func()
+	addressMode func() uint8
 	cycles      uint8
 }
 
-// placing this here to prevent editor from lagging due to file size.
-func buildLookupTable(cpu Mos6502) [256]instruction {
-	return [256]instruction{
+type mos6502LookupTable [256]instruction
+
+func buildMos502LookupTable(cpu *Mos6502) mos6502LookupTable {
+	return mos6502LookupTable{
 		{"BRK", cpu.brk, cpu.imm, 7}, {"ORA", cpu.ora, cpu.izx, 6}, {"???", cpu.xxx, cpu.imp, 2}, {"???", cpu.xxx, cpu.imp, 8}, {"???", cpu.nop, cpu.imp, 3}, {"ORA", cpu.ora, cpu.zp0, 3}, {"ASL", cpu.asl, cpu.zp0, 5}, {"???", cpu.xxx, cpu.imp, 5}, {"PHP", cpu.php, cpu.imp, 3}, {"ORA", cpu.ora, cpu.imm, 2}, {"ASL", cpu.asl, cpu.imp, 2}, {"???", cpu.xxx, cpu.imp, 2}, {"???", cpu.nop, cpu.imp, 4}, {"ORA", cpu.ora, cpu.abs, 4}, {"ASL", cpu.asl, cpu.abs, 6}, {"???", cpu.xxx, cpu.imp, 6},
 		{"BPL", cpu.bpl, cpu.rel, 2}, {"ORA", cpu.ora, cpu.izy, 5}, {"???", cpu.xxx, cpu.imp, 2}, {"???", cpu.xxx, cpu.imp, 8}, {"???", cpu.nop, cpu.imp, 4}, {"ORA", cpu.ora, cpu.zpx, 4}, {"ASL", cpu.asl, cpu.zpx, 6}, {"???", cpu.xxx, cpu.imp, 6}, {"CLC", cpu.clc, cpu.imp, 2}, {"ORA", cpu.ora, cpu.aby, 4}, {"???", cpu.nop, cpu.imp, 2}, {"???", cpu.xxx, cpu.imp, 7}, {"???", cpu.nop, cpu.imp, 4}, {"ORA", cpu.ora, cpu.abx, 4}, {"ASL", cpu.asl, cpu.abx, 7}, {"???", cpu.xxx, cpu.imp, 7},
 		{"JSR", cpu.jsr, cpu.abs, 6}, {"AND", cpu.and, cpu.izx, 6}, {"???", cpu.xxx, cpu.imp, 2}, {"???", cpu.xxx, cpu.imp, 8}, {"BIT", cpu.bit, cpu.zp0, 3}, {"AND", cpu.and, cpu.zp0, 3}, {"ROL", cpu.rol, cpu.zp0, 5}, {"???", cpu.xxx, cpu.imp, 5}, {"PLP", cpu.plp, cpu.imp, 4}, {"AND", cpu.and, cpu.imm, 2}, {"ROL", cpu.rol, cpu.imp, 2}, {"???", cpu.xxx, cpu.imp, 2}, {"BIT", cpu.bit, cpu.abs, 4}, {"AND", cpu.and, cpu.abs, 4}, {"ROL", cpu.rol, cpu.abs, 6}, {"???", cpu.xxx, cpu.imp, 6},
