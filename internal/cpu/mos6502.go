@@ -34,7 +34,7 @@ type Mos6502 struct {
 
 	// Internal Vars
 	fetchedData     uint8
-	temp            uint8
+	temp            uint16
 	addressAbsolute uint16
 	addressRelative uint16
 	opcode          uint8
@@ -399,8 +399,19 @@ func (cpu *Mos6502) izy() uint8 {
 // Opcodes /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// adc is add with carry.
 func (cpu *Mos6502) adc() uint8 {
-	return 0
+	cpu.fetch()
+
+	cpu.temp = uint16(cpu.a) + uint16(cpu.fetchedData) + uint16(cpu.GetStatusFlag(C))
+
+	cpu.setStatusFlag(C, cpu.temp > 255)
+	cpu.setStatusFlag(Z, (cpu.temp&0x00ff) == 0)
+	cpu.setStatusFlag(V, (^(uint16(cpu.a)^uint16(cpu.fetchedData))&(uint16(cpu.a)^cpu.temp)&0x0080)>>7 == 1)
+	cpu.setStatusFlag(N, (cpu.temp&0x80)>>7 == 1)
+
+	cpu.a = uint8(cpu.temp & 0x00ff)
+	return 1
 }
 
 func (cpu *Mos6502) and() uint8 {
