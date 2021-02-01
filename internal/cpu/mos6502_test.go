@@ -30,12 +30,12 @@ func TestMos6502_Clock(t *testing.T) {
 	testCases := []struct {
 		name              string
 		setupInitialState func(*testing.T) *Mos6502
-		expectedPC        uint16
-		expectedA         uint8
-		expectedX         uint8
-		expectedY         uint8
-		expectedStkp      uint8
-		expectedStatus    uint8
+		expectedPC        word
+		expectedA         byte
+		expectedX         byte
+		expectedY         byte
+		expectedStkp      byte
+		expectedStatus    byte
 		expectedCycles    uint8
 	}{
 		{
@@ -1744,12 +1744,12 @@ func TestMos6502_asl(t *testing.T) {
 			if tc.instruction.addressMode == imp {
 				cpu.fetchedData = tc.dataValue
 			} else {
-				cpu.bus.Write(cpu.addressAbsolute, tc.dataValue)
+				cpu.write(cpu.addressAbsolute, tc.dataValue)
 			}
 			additionalCycles := cpu.asl()
 
 			assert.Equal(t, tc.expectedAvalue, cpu.a, "incorrect A value")
-			assert.Equal(t, tc.expectedBusValue, cpu.bus.Read(cpu.addressAbsolute), "incorrect Bus value")
+			assert.Equal(t, tc.expectedBusValue, cpu.read(cpu.addressAbsolute), "incorrect Bus value")
 			assert.Equal(t, tc.expectedCflag, cpu.GetStatusFlag(C), "incorrect C flag")
 			assert.Equal(t, tc.expectedZflag, cpu.GetStatusFlag(Z), "incorrect Z flag")
 			assert.Equal(t, tc.expectedNflag, cpu.GetStatusFlag(N), "incorrect N flag")
@@ -1758,15 +1758,800 @@ func TestMos6502_asl(t *testing.T) {
 	}
 }
 
+func TestMos6502_bcc(t *testing.T) {
+	testCases := []struct {
+		name                     string
+		initialState             *Mos6502
+		expectedState            *Mos6502
+		expectedAdditionalCycles uint8
+	}{
+		{
+			name: "C=true nothing happens",
+			initialState: &Mos6502{
+				status: 0b00000001,
+				cycles: 2,
+			},
+			expectedState: &Mos6502{
+				status: 0b00000001,
+				cycles: 2,
+			},
+			expectedAdditionalCycles: 0,
+		},
+		{
+			name: "C=false assigns pc correctly",
+			initialState: &Mos6502{
+				status:          0b11111110,
+				addressAbsolute: 0x00000,
+				pc:              0x0011,
+				cycles:          2,
+			},
+			expectedState: &Mos6502{
+				status:          0b11111110,
+				addressAbsolute: 0x0011,
+				pc:              0x0011,
+				cycles:          3,
+			},
+			expectedAdditionalCycles: 0,
+		},
+		{
+			name: "C=false relative addressing assigns pc correctly",
+			initialState: &Mos6502{
+				status:          0b11111110,
+				addressAbsolute: 0x0000,
+				addressRelative: 0x0011,
+				pc:              0x0011,
+				cycles:          2,
+			},
+			expectedState: &Mos6502{
+				status:          0b11111110,
+				addressAbsolute: 0x00022,
+				addressRelative: 0x0011,
+				pc:              0x0022,
+				cycles:          3,
+			},
+			expectedAdditionalCycles: 0,
+		},
+		{
+			name: "C=false page change causes extra cycle",
+			initialState: &Mos6502{
+				status:          0b11111110,
+				addressAbsolute: 0x0000,
+				addressRelative: 0x1100,
+				pc:              0x1111,
+				cycles:          2,
+			},
+			expectedState: &Mos6502{
+				status:          0b11111110,
+				addressAbsolute: 0x2211,
+				addressRelative: 0x1100,
+				pc:              0x2211,
+				cycles:          4,
+			},
+			expectedAdditionalCycles: 0,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			cpu := tc.initialState
+			additionalCycles := cpu.bcc()
+
+			assert.Equal(t, tc.expectedState, cpu)
+			assert.Equal(t, tc.expectedAdditionalCycles, additionalCycles)
+		})
+	}
+}
+
+func TestMos6502_bcs(t *testing.T) {
+	testCases := []struct {
+		name                     string
+		initialState             *Mos6502
+		expectedState            *Mos6502
+		expectedAdditionalCycles uint8
+	}{
+		{
+			name: "C=false nothing happens",
+			initialState: &Mos6502{
+				status: 0b11111110,
+				cycles: 2,
+			},
+			expectedState: &Mos6502{
+				status: 0b11111110,
+				cycles: 2,
+			},
+			expectedAdditionalCycles: 0,
+		},
+		{
+			name: "C=true assigns pc correctly",
+			initialState: &Mos6502{
+				status:          0b00000001,
+				addressAbsolute: 0x00000,
+				pc:              0x0011,
+				cycles:          2,
+			},
+			expectedState: &Mos6502{
+				status:          0b00000001,
+				addressAbsolute: 0x0011,
+				pc:              0x0011,
+				cycles:          3,
+			},
+			expectedAdditionalCycles: 0,
+		},
+		{
+			name: "C=true relative addressing assigns pc correctly",
+			initialState: &Mos6502{
+				status:          0b00000001,
+				addressAbsolute: 0x0000,
+				addressRelative: 0x0011,
+				pc:              0x0011,
+				cycles:          2,
+			},
+			expectedState: &Mos6502{
+				status:          0b00000001,
+				addressAbsolute: 0x00022,
+				addressRelative: 0x0011,
+				pc:              0x0022,
+				cycles:          3,
+			},
+			expectedAdditionalCycles: 0,
+		},
+		{
+			name: "C=true page change causes extra cycle",
+			initialState: &Mos6502{
+				status:          0b00000001,
+				addressAbsolute: 0x0000,
+				addressRelative: 0x1100,
+				pc:              0x1111,
+				cycles:          2,
+			},
+			expectedState: &Mos6502{
+				status:          0b00000001,
+				addressAbsolute: 0x2211,
+				addressRelative: 0x1100,
+				pc:              0x2211,
+				cycles:          4,
+			},
+			expectedAdditionalCycles: 0,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			cpu := tc.initialState
+			additionalCycles := cpu.bcs()
+
+			assert.Equal(t, tc.expectedState, cpu)
+			assert.Equal(t, tc.expectedAdditionalCycles, additionalCycles)
+		})
+	}
+}
+
+func TestMos6502_beq(t *testing.T) {
+	testCases := []struct {
+		name                     string
+		initialState             *Mos6502
+		expectedState            *Mos6502
+		expectedAdditionalCycles uint8
+	}{
+		{
+			name: "Z=false nothing happens",
+			initialState: &Mos6502{
+				status: 0b11111101,
+				cycles: 2,
+			},
+			expectedState: &Mos6502{
+				status: 0b11111101,
+				cycles: 2,
+			},
+			expectedAdditionalCycles: 0,
+		},
+		{
+			name: "Z=true assigns pc correctly",
+			initialState: &Mos6502{
+				status:          0b00000010,
+				addressAbsolute: 0x00000,
+				pc:              0x0011,
+				cycles:          2,
+			},
+			expectedState: &Mos6502{
+				status:          0b00000010,
+				addressAbsolute: 0x0011,
+				pc:              0x0011,
+				cycles:          3,
+			},
+			expectedAdditionalCycles: 0,
+		},
+		{
+			name: "Z=true relative addressing assigns pc correctly",
+			initialState: &Mos6502{
+				status:          0b00000010,
+				addressAbsolute: 0x0000,
+				addressRelative: 0x0011,
+				pc:              0x0011,
+				cycles:          2,
+			},
+			expectedState: &Mos6502{
+				status:          0b00000010,
+				addressAbsolute: 0x00022,
+				addressRelative: 0x0011,
+				pc:              0x0022,
+				cycles:          3,
+			},
+			expectedAdditionalCycles: 0,
+		},
+		{
+			name: "Z=true page change causes extra cycle",
+			initialState: &Mos6502{
+				status:          0b00000010,
+				addressAbsolute: 0x0000,
+				addressRelative: 0x1100,
+				pc:              0x1111,
+				cycles:          2,
+			},
+			expectedState: &Mos6502{
+				status:          0b00000010,
+				addressAbsolute: 0x2211,
+				addressRelative: 0x1100,
+				pc:              0x2211,
+				cycles:          4,
+			},
+			expectedAdditionalCycles: 0,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			cpu := tc.initialState
+			additionalCycles := cpu.beq()
+
+			assert.Equal(t, tc.expectedState, cpu)
+			assert.Equal(t, tc.expectedAdditionalCycles, additionalCycles)
+		})
+	}
+}
+
+func TestMos6502_bit(t *testing.T) {
+	testCases := []struct {
+		name                     string
+		initialState             *Mos6502
+		expectedZflag            uint8
+		expectedNflag            uint8
+		expectedVflag            uint8
+		expectedAdditionalCycles uint8
+	}{
+		{
+			name: "nothing gets set",
+			initialState: &Mos6502{
+				a: 0x11,
+				bus: bus.NewBus(bus.RAM{
+					0x11,
+				}),
+			},
+			expectedZflag:            0,
+			expectedNflag:            0,
+			expectedVflag:            0,
+			expectedAdditionalCycles: 0,
+		},
+		{
+			name: "result of mask is zero",
+			initialState: &Mos6502{
+				a: 0xff,
+				bus: bus.NewBus(bus.RAM{
+					0x00,
+				}),
+			},
+			expectedZflag:            1,
+			expectedNflag:            0,
+			expectedVflag:            0,
+			expectedAdditionalCycles: 0,
+		},
+		{
+			name: "addressed data is negative",
+			initialState: &Mos6502{
+				a: 0xff,
+				bus: bus.NewBus(bus.RAM{
+					0x80,
+				}),
+			},
+			expectedZflag:            0,
+			expectedNflag:            1,
+			expectedVflag:            0,
+			expectedAdditionalCycles: 0,
+		},
+		{
+			name: "addressed data is overflow value",
+			initialState: &Mos6502{
+				a: 0xff,
+				bus: bus.NewBus(bus.RAM{
+					0x7f,
+				}),
+			},
+			expectedZflag:            0,
+			expectedNflag:            0,
+			expectedVflag:            1,
+			expectedAdditionalCycles: 0,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			cpu := tc.initialState
+			additionalCycles := cpu.bit()
+
+			assert.Equal(t, tc.expectedZflag, cpu.GetStatusFlag(Z), "incorrect Z flag")
+			assert.Equal(t, tc.expectedNflag, cpu.GetStatusFlag(N), "incorrect N flag")
+			assert.Equal(t, tc.expectedVflag, cpu.GetStatusFlag(V), "incorrect V flag")
+			assert.Equal(t, tc.expectedAdditionalCycles, additionalCycles, "incorrect additional cycles")
+		})
+	}
+}
+
+func TestMos6502_bmi(t *testing.T) {
+	testCases := []struct {
+		name                     string
+		initialState             *Mos6502
+		expectedState            *Mos6502
+		expectedAdditionalCycles uint8
+	}{
+		{
+			name: "N=false nothing happens",
+			initialState: &Mos6502{
+				status: 0b01111111,
+				cycles: 2,
+			},
+			expectedState: &Mos6502{
+				status: 0b01111111,
+				cycles: 2,
+			},
+			expectedAdditionalCycles: 0,
+		},
+		{
+			name: "N=true assigns pc correctly",
+			initialState: &Mos6502{
+				status:          0b10000000,
+				addressAbsolute: 0x00000,
+				pc:              0x0011,
+				cycles:          2,
+			},
+			expectedState: &Mos6502{
+				status:          0b10000000,
+				addressAbsolute: 0x0011,
+				pc:              0x0011,
+				cycles:          3,
+			},
+			expectedAdditionalCycles: 0,
+		},
+		{
+			name: "N=true relative addressing assigns pc correctly",
+			initialState: &Mos6502{
+				status:          0b10000000,
+				addressAbsolute: 0x0000,
+				addressRelative: 0x0011,
+				pc:              0x0011,
+				cycles:          2,
+			},
+			expectedState: &Mos6502{
+				status:          0b10000000,
+				addressAbsolute: 0x00022,
+				addressRelative: 0x0011,
+				pc:              0x0022,
+				cycles:          3,
+			},
+			expectedAdditionalCycles: 0,
+		},
+		{
+			name: "N=true page change causes extra cycle",
+			initialState: &Mos6502{
+				status:          0b10000000,
+				addressAbsolute: 0x0000,
+				addressRelative: 0x1100,
+				pc:              0x1111,
+				cycles:          2,
+			},
+			expectedState: &Mos6502{
+				status:          0b10000000,
+				addressAbsolute: 0x2211,
+				addressRelative: 0x1100,
+				pc:              0x2211,
+				cycles:          4,
+			},
+			expectedAdditionalCycles: 0,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			cpu := tc.initialState
+			additionalCycles := cpu.bmi()
+
+			assert.Equal(t, tc.expectedState, cpu)
+			assert.Equal(t, tc.expectedAdditionalCycles, additionalCycles)
+		})
+	}
+}
+
+func TestMos6502_bne(t *testing.T) {
+	testCases := []struct {
+		name                     string
+		initialState             *Mos6502
+		expectedState            *Mos6502
+		expectedAdditionalCycles uint8
+	}{
+		{
+			name: "Z=true nothing happens",
+			initialState: &Mos6502{
+				status: 0b00000010,
+				cycles: 2,
+			},
+			expectedState: &Mos6502{
+				status: 0b00000010,
+				cycles: 2,
+			},
+			expectedAdditionalCycles: 0,
+		},
+		{
+			name: "Z=false assigns pc correctly",
+			initialState: &Mos6502{
+				status:          0b11111101,
+				addressAbsolute: 0x00000,
+				pc:              0x0011,
+				cycles:          2,
+			},
+			expectedState: &Mos6502{
+				status:          0b11111101,
+				addressAbsolute: 0x0011,
+				pc:              0x0011,
+				cycles:          3,
+			},
+			expectedAdditionalCycles: 0,
+		},
+		{
+			name: "Z=false relative addressing assigns pc correctly",
+			initialState: &Mos6502{
+				status:          0b11111101,
+				addressAbsolute: 0x0000,
+				addressRelative: 0x0011,
+				pc:              0x0011,
+				cycles:          2,
+			},
+			expectedState: &Mos6502{
+				status:          0b11111101,
+				addressAbsolute: 0x00022,
+				addressRelative: 0x0011,
+				pc:              0x0022,
+				cycles:          3,
+			},
+			expectedAdditionalCycles: 0,
+		},
+		{
+			name: "Z=false page change causes extra cycle",
+			initialState: &Mos6502{
+				status:          0b11111101,
+				addressAbsolute: 0x0000,
+				addressRelative: 0x1100,
+				pc:              0x1111,
+				cycles:          2,
+			},
+			expectedState: &Mos6502{
+				status:          0b11111101,
+				addressAbsolute: 0x2211,
+				addressRelative: 0x1100,
+				pc:              0x2211,
+				cycles:          4,
+			},
+			expectedAdditionalCycles: 0,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			cpu := tc.initialState
+			additionalCycles := cpu.bne()
+
+			assert.Equal(t, tc.expectedState, cpu)
+			assert.Equal(t, tc.expectedAdditionalCycles, additionalCycles)
+		})
+	}
+}
+
+func TestMos6502_bpl(t *testing.T) {
+	testCases := []struct {
+		name                     string
+		initialState             *Mos6502
+		expectedState            *Mos6502
+		expectedAdditionalCycles uint8
+	}{
+		{
+			name: "N=true nothing happens",
+			initialState: &Mos6502{
+				status: 0b10000000,
+				cycles: 2,
+			},
+			expectedState: &Mos6502{
+				status: 0b10000000,
+				cycles: 2,
+			},
+			expectedAdditionalCycles: 0,
+		},
+		{
+			name: "N=false assigns pc correctly",
+			initialState: &Mos6502{
+				status:          0b01111111,
+				addressAbsolute: 0x00000,
+				pc:              0x0011,
+				cycles:          2,
+			},
+			expectedState: &Mos6502{
+				status:          0b01111111,
+				addressAbsolute: 0x0011,
+				pc:              0x0011,
+				cycles:          3,
+			},
+			expectedAdditionalCycles: 0,
+		},
+		{
+			name: "N=false relative addressing assigns pc correctly",
+			initialState: &Mos6502{
+				status:          0b01111111,
+				addressAbsolute: 0x0000,
+				addressRelative: 0x0011,
+				pc:              0x0011,
+				cycles:          2,
+			},
+			expectedState: &Mos6502{
+				status:          0b01111111,
+				addressAbsolute: 0x00022,
+				addressRelative: 0x0011,
+				pc:              0x0022,
+				cycles:          3,
+			},
+			expectedAdditionalCycles: 0,
+		},
+		{
+			name: "N=false page change causes extra cycle",
+			initialState: &Mos6502{
+				status:          0b01111111,
+				addressAbsolute: 0x0000,
+				addressRelative: 0x1100,
+				pc:              0x1111,
+				cycles:          2,
+			},
+			expectedState: &Mos6502{
+				status:          0b01111111,
+				addressAbsolute: 0x2211,
+				addressRelative: 0x1100,
+				pc:              0x2211,
+				cycles:          4,
+			},
+			expectedAdditionalCycles: 0,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			cpu := tc.initialState
+			additionalCycles := cpu.bpl()
+
+			assert.Equal(t, tc.expectedState, cpu)
+			assert.Equal(t, tc.expectedAdditionalCycles, additionalCycles)
+		})
+	}
+}
+
+func TestMos6502_brk(t *testing.T) {
+	initialBus := bus.NewBus(bus.RAM{})
+	initialBus.Write(0xfffe, 0x20)
+	initialBus.Write(0xffff, 0x04)
+
+	expectedBus := bus.NewBus(bus.RAM{})
+	expectedBus.Write(0xfffe, 0x20)
+	expectedBus.Write(0xffff, 0x04)
+	expectedBus.Write(0x0140, 0b11111111)
+	expectedBus.Write(0x0141, 0xff)
+	expectedBus.Write(0x0142, 0x11)
+
+	testCases := []struct {
+		name                     string
+		initialState             *Mos6502
+		expectedState            *Mos6502
+		expectedAdditionalCycles uint8
+	}{
+		{
+			name: "break is performed correctly",
+			initialState: &Mos6502{
+				pc:     0x11fe,
+				stkp:   0x42,
+				status: 0b11101011,
+				bus:    initialBus,
+			},
+			expectedState: &Mos6502{
+				pc:     0x0420,
+				status: 0b11101111,
+				stkp:   0x3f,
+				bus:    expectedBus,
+			},
+			expectedAdditionalCycles: 0,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			cpu := tc.initialState
+			additionalCycles := cpu.brk()
+
+			assert.Equal(t, tc.expectedState, cpu)
+			assert.Equal(t, tc.expectedAdditionalCycles, additionalCycles)
+		})
+	}
+}
+
+func TestMos6502_bvc(t *testing.T) {
+	testCases := []struct {
+		name                     string
+		initialState             *Mos6502
+		expectedState            *Mos6502
+		expectedAdditionalCycles uint8
+	}{
+		{
+			name: "V=true nothing happens",
+			initialState: &Mos6502{
+				status: 0b01000000,
+				cycles: 2,
+			},
+			expectedState: &Mos6502{
+				status: 0b01000000,
+				cycles: 2,
+			},
+			expectedAdditionalCycles: 0,
+		},
+		{
+			name: "V=false assigns pc correctly",
+			initialState: &Mos6502{
+				status:          0b10111111,
+				addressAbsolute: 0x00000,
+				pc:              0x0011,
+				cycles:          2,
+			},
+			expectedState: &Mos6502{
+				status:          0b10111111,
+				addressAbsolute: 0x0011,
+				pc:              0x0011,
+				cycles:          3,
+			},
+			expectedAdditionalCycles: 0,
+		},
+		{
+			name: "V=false relative addressing assigns pc correctly",
+			initialState: &Mos6502{
+				status:          0b10111111,
+				addressAbsolute: 0x0000,
+				addressRelative: 0x0011,
+				pc:              0x0011,
+				cycles:          2,
+			},
+			expectedState: &Mos6502{
+				status:          0b10111111,
+				addressAbsolute: 0x00022,
+				addressRelative: 0x0011,
+				pc:              0x0022,
+				cycles:          3,
+			},
+			expectedAdditionalCycles: 0,
+		},
+		{
+			name: "V=false page change causes extra cycle",
+			initialState: &Mos6502{
+				status:          0b10111111,
+				addressAbsolute: 0x0000,
+				addressRelative: 0x1100,
+				pc:              0x1111,
+				cycles:          2,
+			},
+			expectedState: &Mos6502{
+				status:          0b10111111,
+				addressAbsolute: 0x2211,
+				addressRelative: 0x1100,
+				pc:              0x2211,
+				cycles:          4,
+			},
+			expectedAdditionalCycles: 0,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			cpu := tc.initialState
+			additionalCycles := cpu.bvc()
+
+			assert.Equal(t, tc.expectedState, cpu)
+			assert.Equal(t, tc.expectedAdditionalCycles, additionalCycles)
+		})
+	}
+}
+
+func TestMos6502_bvs(t *testing.T) {
+	testCases := []struct {
+		name                     string
+		initialState             *Mos6502
+		expectedState            *Mos6502
+		expectedAdditionalCycles uint8
+	}{
+		{
+			name: "V=false nothing happens",
+			initialState: &Mos6502{
+				status: 0b10111111,
+				cycles: 2,
+			},
+			expectedState: &Mos6502{
+				status: 0b10111111,
+				cycles: 2,
+			},
+			expectedAdditionalCycles: 0,
+		},
+		{
+			name: "V=true assigns pc correctly",
+			initialState: &Mos6502{
+				status:          0b01000000,
+				addressAbsolute: 0x00000,
+				pc:              0x0011,
+				cycles:          2,
+			},
+			expectedState: &Mos6502{
+				status:          0b01000000,
+				addressAbsolute: 0x0011,
+				pc:              0x0011,
+				cycles:          3,
+			},
+			expectedAdditionalCycles: 0,
+		},
+		{
+			name: "V=true relative addressing assigns pc correctly",
+			initialState: &Mos6502{
+				status:          0b01000000,
+				addressAbsolute: 0x0000,
+				addressRelative: 0x0011,
+				pc:              0x0011,
+				cycles:          2,
+			},
+			expectedState: &Mos6502{
+				status:          0b01000000,
+				addressAbsolute: 0x00022,
+				addressRelative: 0x0011,
+				pc:              0x0022,
+				cycles:          3,
+			},
+			expectedAdditionalCycles: 0,
+		},
+		{
+			name: "V=true page change causes extra cycle",
+			initialState: &Mos6502{
+				status:          0b01000000,
+				addressAbsolute: 0x0000,
+				addressRelative: 0x1100,
+				pc:              0x1111,
+				cycles:          2,
+			},
+			expectedState: &Mos6502{
+				status:          0b01000000,
+				addressAbsolute: 0x2211,
+				addressRelative: 0x1100,
+				pc:              0x2211,
+				cycles:          4,
+			},
+			expectedAdditionalCycles: 0,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			cpu := tc.initialState
+			additionalCycles := cpu.bvs()
+
+			assert.Equal(t, tc.expectedState, cpu)
+			assert.Equal(t, tc.expectedAdditionalCycles, additionalCycles)
+		})
+	}
+}
+
 func TestMos6502_sbc(t *testing.T) {
 	testCases := []struct {
 		name string
 
-		busValue      uint8
-		initialAvalue uint8
+		busValue      byte
+		initialAvalue byte
 		initialCflag  bool
 
-		expectedAvalue           uint8
+		expectedAvalue           byte
 		expectedCflag            uint8
 		expectedZflag            uint8
 		expectedVflag            uint8
@@ -2020,9 +2805,9 @@ func TestMos6502_sbc(t *testing.T) {
 			}
 			cpu.lookup = mos6502LookupTable{
 				{
-					operation:      adc,
+					operation:      sbc,
 					addressMode:    "TST",
-					performOp:      cpu.adc,
+					performOp:      cpu.sbc,
 					setAddressMode: func() uint8 { return 0 },
 				},
 			}

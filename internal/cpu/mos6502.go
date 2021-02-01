@@ -4,8 +4,10 @@ import (
 	"github.com/Jac0bDeal/goNES/internal/bus"
 )
 
+type word uint16
+
 // Flag is the possible different status flags for the CPU.
-type Flag uint8
+type Flag byte
 
 // Mos6502 Status Flags
 const (
@@ -22,23 +24,23 @@ const (
 // Mos6502 represents a Mos 6502 CPU.
 type Mos6502 struct {
 	// Core registers
-	a      uint8  // accumulator
-	x      uint8  // x register
-	y      uint8  // y register
-	stkp   uint8  // stack pointer
-	pc     uint16 // program counter
-	status uint8  // status register
+	a      byte // accumulator
+	x      byte // x register
+	y      byte // y register
+	stkp   byte // stack pointer
+	pc     word // program counter
+	status byte // status register
 
 	// Bus
 	bus *bus.Bus
 
 	// Internal Vars
-	fetchedData     uint8
-	temp            uint16
-	addressAbsolute uint16
-	addressRelative uint16
-	opcode          uint8
-	cycles          uint8
+	fetchedData     byte
+	temp            word
+	addressAbsolute word
+	addressRelative word
+	opcode          byte
+	cycles          byte
 	clockCount      uint32
 
 	// OpCode Lookup Table
@@ -62,33 +64,33 @@ func (cpu *Mos6502) ConnectBus(b *bus.Bus) {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // GetAccumulator returns the current value of the Accumulator Register.
-func (cpu *Mos6502) GetAccumulator() uint8 {
+func (cpu *Mos6502) GetAccumulator() byte {
 	return cpu.a
 }
 
 // GetX returns the current value of the X Register.
-func (cpu *Mos6502) GetX() uint8 {
+func (cpu *Mos6502) GetX() byte {
 	return cpu.x
 }
 
 // GetY returns the current value of the Y Register.
-func (cpu *Mos6502) GetY() uint8 {
+func (cpu *Mos6502) GetY() byte {
 	return cpu.y
 }
 
 // GetStackPointer returns the current value of the Stack Pointer.
-func (cpu *Mos6502) GetStackPointer() uint8 {
+func (cpu *Mos6502) GetStackPointer() byte {
 	return cpu.stkp
 }
 
 // GetProgramCounter returns the current value of the Program Counter.
 func (cpu *Mos6502) GetProgramCounter() uint16 {
-	return cpu.pc
+	return uint16(cpu.pc)
 }
 
 // GetStatusFlag returns the current value of specific bit on CPU status register.
-func (cpu *Mos6502) GetStatusFlag(f Flag) uint8 {
-	if (cpu.status & uint8(f)) > 0 {
+func (cpu *Mos6502) GetStatusFlag(f Flag) byte {
+	if (cpu.status & byte(f)) > 0 {
 		return 1
 	}
 	return 0
@@ -97,9 +99,9 @@ func (cpu *Mos6502) GetStatusFlag(f Flag) uint8 {
 // setStatusFlag sets or clears specific bit on the CPU status register.
 func (cpu *Mos6502) setStatusFlag(f Flag, v bool) {
 	if v {
-		cpu.status |= uint8(f)
+		cpu.status |= byte(f)
 	} else {
-		cpu.status &= ^uint8(f)
+		cpu.status &= ^byte(f)
 	}
 }
 
@@ -107,11 +109,21 @@ func (cpu *Mos6502) setStatusFlag(f Flag, v bool) {
 // fetchedData variable. For instructions using the Implied address
 // mode, there is no data needed so it is skipped here. It also returns
 // the fetched data for convenience.
-func (cpu *Mos6502) fetch() uint8 {
+func (cpu *Mos6502) fetch() byte {
 	if !(cpu.lookup[cpu.opcode].addressMode == imp) {
-		cpu.fetchedData = cpu.bus.Read(cpu.addressAbsolute)
+		cpu.fetchedData = cpu.read(cpu.addressAbsolute)
 	}
 	return cpu.fetchedData
+}
+
+// read reads data from the Bus at the passed address.
+func (cpu *Mos6502) read(address word) byte {
+	return cpu.bus.Read(uint16(address))
+}
+
+// write writes data to the Bus at the passed address.
+func (cpu *Mos6502) write(address word, data byte) {
+	cpu.bus.Write(uint16(address), data)
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -122,7 +134,7 @@ func (cpu *Mos6502) fetch() uint8 {
 func (cpu *Mos6502) Clock() {
 	// if current instruction complete, read and execute next instruction
 	if cpu.cycles == 0 {
-		opcode := cpu.bus.Read(cpu.pc)
+		opcode := cpu.read(cpu.pc)
 		instruction := cpu.lookup[opcode]
 
 		cpu.setStatusFlag(U, true)
@@ -142,16 +154,16 @@ func (cpu *Mos6502) Clock() {
 // Reset signals the cpu to reset to a known state.
 func (cpu *Mos6502) Reset() {
 	cpu.addressAbsolute = 0xfffc
-	lowByte := cpu.bus.Read(cpu.addressAbsolute)
-	highByte := cpu.bus.Read(cpu.addressAbsolute + 1)
+	lowByte := cpu.read(cpu.addressAbsolute)
+	highByte := cpu.read(cpu.addressAbsolute + 1)
 
-	cpu.pc = (uint16(highByte) << 8) | uint16(lowByte)
+	cpu.pc = (word(highByte) << 8) | word(lowByte)
 
 	cpu.a = 0x00
 	cpu.x = 0x00
 	cpu.y = 0x00
 	cpu.stkp = 0xfd
-	cpu.status = 0x00 | uint8(U)
+	cpu.status = 0x00 | byte(U)
 
 	cpu.addressRelative = 0x0000
 	cpu.addressAbsolute = 0x0000
@@ -165,21 +177,21 @@ func (cpu *Mos6502) Reset() {
 // instruction is allowed to complete before the Interrupt Request does its thing.
 func (cpu *Mos6502) InterruptRequest() {
 	if cpu.GetStatusFlag(I) == 0 {
-		cpu.bus.Write(0x0100+uint16(cpu.stkp), uint8((cpu.pc>>8)&0x00ff))
+		cpu.write(0x0100+word(cpu.stkp), byte((cpu.pc>>8)&0x00ff))
 		cpu.stkp--
-		cpu.bus.Write(0x0100+uint16(cpu.stkp), uint8(cpu.pc&0x00ff))
+		cpu.write(0x0100+word(cpu.stkp), byte(cpu.pc&0x00ff))
 		cpu.stkp--
 
 		cpu.setStatusFlag(B, false)
 		cpu.setStatusFlag(U, true)
 		cpu.setStatusFlag(I, true)
-		cpu.bus.Write(0x0100+uint16(cpu.stkp), cpu.status)
+		cpu.write(0x0100+word(cpu.stkp), cpu.status)
 		cpu.stkp--
 
 		cpu.addressAbsolute = 0xfffe
-		lowByte := cpu.bus.Read(cpu.addressAbsolute)
-		highByte := cpu.bus.Read(cpu.addressAbsolute + 1)
-		cpu.pc = (uint16(highByte) << 8) | uint16(lowByte)
+		lowByte := cpu.read(cpu.addressAbsolute)
+		highByte := cpu.read(cpu.addressAbsolute + 1)
+		cpu.pc = (word(highByte) << 8) | word(lowByte)
 
 		cpu.cycles = 7
 	}
@@ -189,21 +201,21 @@ func (cpu *Mos6502) InterruptRequest() {
 // cannot be ignored. It has the same behavior as the normal Interrupt Request
 // but reads 0xfffa to set the program counter.
 func (cpu *Mos6502) NonMaskableInterrupt() {
-	cpu.bus.Write(0x0100+uint16(cpu.stkp), uint8((cpu.pc>>8)&0x00ff))
+	cpu.write(0x0100+word(cpu.stkp), byte((cpu.pc>>8)&0x00ff))
 	cpu.stkp--
-	cpu.bus.Write(0x0100+uint16(cpu.stkp), uint8(cpu.pc&0x00ff))
+	cpu.write(0x0100+word(cpu.stkp), byte(cpu.pc&0x00ff))
 	cpu.stkp--
 
 	cpu.setStatusFlag(B, false)
 	cpu.setStatusFlag(U, true)
 	cpu.setStatusFlag(I, true)
-	cpu.bus.Write(0x0100+uint16(cpu.stkp), cpu.status)
+	cpu.write(0x0100+word(cpu.stkp), cpu.status)
 	cpu.stkp--
 
 	cpu.addressAbsolute = 0xfffa
-	lowByte := cpu.bus.Read(cpu.addressAbsolute)
-	highByte := cpu.bus.Read(cpu.addressAbsolute + 1)
-	cpu.pc = (uint16(highByte) << 8) | uint16(lowByte)
+	lowByte := cpu.read(cpu.addressAbsolute)
+	highByte := cpu.read(cpu.addressAbsolute + 1)
+	cpu.pc = (word(highByte) << 8) | word(lowByte)
 
 	cpu.cycles = 8
 }
@@ -234,9 +246,9 @@ func (cpu *Mos6502) imm() uint8 {
 // location in the first address block (0x00 - 0xff), saving a byte of
 // usage in the process.
 func (cpu *Mos6502) zp0() uint8 {
-	b := cpu.bus.Read(cpu.pc)
+	b := cpu.read(cpu.pc)
 	cpu.pc++
-	cpu.addressAbsolute = uint16(b) & 0x00ff
+	cpu.addressAbsolute = word(b) & 0x00ff
 	return 0
 }
 
@@ -244,9 +256,9 @@ func (cpu *Mos6502) zp0() uint8 {
 // Essentially the same as Zero Page addressing, but with an additional
 // offset of the read byte by the value in the X register.
 func (cpu *Mos6502) zpx() uint8 {
-	b := cpu.bus.Read(cpu.pc)
+	b := cpu.read(cpu.pc)
 	cpu.pc++
-	cpu.addressAbsolute = uint16(b+cpu.x) & 0x00ff
+	cpu.addressAbsolute = word(b+cpu.x) & 0x00ff
 	return 0
 }
 
@@ -254,9 +266,9 @@ func (cpu *Mos6502) zpx() uint8 {
 // The same as Zero Page w/ X offset addressing, but offsetting with the
 // Y register instead.
 func (cpu *Mos6502) zpy() uint8 {
-	b := cpu.bus.Read(cpu.pc)
+	b := cpu.read(cpu.pc)
 	cpu.pc++
-	cpu.addressAbsolute = uint16(b+cpu.y) & 0x00ff
+	cpu.addressAbsolute = word(b+cpu.y) & 0x00ff
 	return 0
 }
 
@@ -264,12 +276,12 @@ func (cpu *Mos6502) zpy() uint8 {
 // Exclusive to branch operations, the instruction is addressed within the
 // -128 to +127 range of the branched instruction.
 func (cpu *Mos6502) rel() uint8 {
-	b := cpu.bus.Read(cpu.pc)
+	b := cpu.read(cpu.pc)
 	cpu.pc++
 	if b&0x80 > 0 {
-		cpu.addressRelative = uint16(b) | 0xff00
+		cpu.addressRelative = word(b) | 0xff00
 	} else {
-		cpu.addressRelative = uint16(b)
+		cpu.addressRelative = word(b)
 	}
 	return 0
 }
@@ -277,13 +289,13 @@ func (cpu *Mos6502) rel() uint8 {
 // abs is the Absolute address mode.
 // Read and load a full 16-bit address.
 func (cpu *Mos6502) abs() uint8 {
-	lowByte := cpu.bus.Read(cpu.pc)
+	lowByte := cpu.read(cpu.pc)
 	cpu.pc++
 
-	highByte := cpu.bus.Read(cpu.pc)
+	highByte := cpu.read(cpu.pc)
 	cpu.pc++
 
-	cpu.addressAbsolute = (uint16(highByte) << 8) | uint16(lowByte)
+	cpu.addressAbsolute = (word(highByte) << 8) | word(lowByte)
 
 	return 0
 }
@@ -293,17 +305,17 @@ func (cpu *Mos6502) abs() uint8 {
 // value of the X register. If this results in a page change, then
 // an additional clock cycle is required and returned.
 func (cpu *Mos6502) abx() uint8 {
-	lowByte := cpu.bus.Read(cpu.pc)
+	lowByte := cpu.read(cpu.pc)
 	cpu.pc++
 
-	highByte := cpu.bus.Read(cpu.pc)
+	highByte := cpu.read(cpu.pc)
 	cpu.pc++
 
-	a := ((uint16(highByte) << 8) | uint16(lowByte)) + uint16(cpu.x)
+	a := ((word(highByte) << 8) | word(lowByte)) + word(cpu.x)
 
 	cpu.addressAbsolute = a
 
-	if (a & 0xff00) != (uint16(highByte) << 8) {
+	if (a & 0xff00) != (word(highByte) << 8) {
 		return 1
 	}
 
@@ -314,17 +326,17 @@ func (cpu *Mos6502) abx() uint8 {
 // Same as Absolute w/ X Offset addressing, but offsetting with the
 // Y register instead.
 func (cpu *Mos6502) aby() uint8 {
-	lowByte := cpu.bus.Read(cpu.pc)
+	lowByte := cpu.read(cpu.pc)
 	cpu.pc++
 
-	highByte := cpu.bus.Read(cpu.pc)
+	highByte := cpu.read(cpu.pc)
 	cpu.pc++
 
-	a := ((uint16(highByte) << 8) | uint16(lowByte)) + uint16(cpu.y)
+	a := ((word(highByte) << 8) | word(lowByte)) + word(cpu.y)
 
 	cpu.addressAbsolute = a
 
-	if (a & 0xff00) != (uint16(highByte) << 8) {
+	if (a & 0xff00) != (word(highByte) << 8) {
 		return 1
 	}
 
@@ -339,19 +351,19 @@ func (cpu *Mos6502) aby() uint8 {
 // byte from the next page, the bug causes the start of the same page to be
 // read instead and resulting in an invalid address.
 func (cpu *Mos6502) ind() uint8 {
-	lowByte := cpu.bus.Read(cpu.pc)
+	lowByte := cpu.read(cpu.pc)
 	cpu.pc++
 
-	highByte := cpu.bus.Read(cpu.pc)
+	highByte := cpu.read(cpu.pc)
 	cpu.pc++
 
-	pointer := (uint16(highByte) << 8) | uint16(lowByte)
+	pointer := (word(highByte) << 8) | word(lowByte)
 
-	var a uint16
+	var a word
 	if lowByte == 0xff {
-		a = (uint16(cpu.bus.Read(pointer&0xFF00)) << 8) | uint16(cpu.bus.Read(pointer))
+		a = (word(cpu.read(pointer&0xFF00)) << 8) | word(cpu.read(pointer))
 	} else {
-		a = (uint16(cpu.bus.Read(pointer+1)) << 8) | uint16(cpu.bus.Read(pointer))
+		a = (word(cpu.read(pointer+1)) << 8) | word(cpu.read(pointer))
 	}
 	cpu.addressAbsolute = a
 
@@ -362,13 +374,13 @@ func (cpu *Mos6502) ind() uint8 {
 // The 8-bit address read from the Bus is offset by the byte in the X
 // register to reference an address in page 0x00.
 func (cpu *Mos6502) izx() uint8 {
-	pa := uint16(cpu.bus.Read(cpu.pc) + cpu.x)
+	pa := word(cpu.read(cpu.pc) + cpu.x)
 	cpu.pc++
 
-	lowByte := cpu.bus.Read(pa & 0x00ff)
-	highByte := cpu.bus.Read((pa + 1) & 0x00ff)
+	lowByte := cpu.read(pa & 0x00ff)
+	highByte := cpu.read((pa + 1) & 0x00ff)
 
-	cpu.addressAbsolute = (uint16(highByte) << 8) | uint16(lowByte)
+	cpu.addressAbsolute = (word(highByte) << 8) | word(lowByte)
 
 	return 0
 }
@@ -379,16 +391,16 @@ func (cpu *Mos6502) izx() uint8 {
 // value in the Y register. If this results in a page change, then an
 // additional clock cycle is required and returned.
 func (cpu *Mos6502) izy() uint8 {
-	pa := uint16(cpu.bus.Read(cpu.pc))
+	pa := word(cpu.read(cpu.pc))
 	cpu.pc++
 
-	lowByte := cpu.bus.Read(pa & 0x00ff)
-	highByte := cpu.bus.Read((pa + 1) & 0x00ff)
+	lowByte := cpu.read(pa & 0x00ff)
+	highByte := cpu.read((pa + 1) & 0x00ff)
 
-	a := ((uint16(highByte) << 8) | uint16(lowByte)) + uint16(cpu.y)
+	a := ((word(highByte) << 8) | word(lowByte)) + word(cpu.y)
 	cpu.addressAbsolute = a
 
-	if (a & 0xFF00) != (uint16(highByte) << 8) {
+	if (a & 0xFF00) != (word(highByte) << 8) {
 		return 1
 	}
 
@@ -403,14 +415,14 @@ func (cpu *Mos6502) izy() uint8 {
 func (cpu *Mos6502) adc() uint8 {
 	cpu.fetch()
 
-	cpu.temp = uint16(cpu.a) + uint16(cpu.fetchedData) + uint16(cpu.GetStatusFlag(C))
+	cpu.temp = word(cpu.a) + word(cpu.fetchedData) + word(cpu.GetStatusFlag(C))
 
 	cpu.setStatusFlag(C, cpu.temp > 255)
 	cpu.setStatusFlag(Z, (cpu.temp&0x00ff) == 0)
-	cpu.setStatusFlag(V, ^(uint16(cpu.a)^uint16(cpu.fetchedData))&(uint16(cpu.a)^cpu.temp)&0x0080 > 0)
+	cpu.setStatusFlag(V, ^(word(cpu.a)^word(cpu.fetchedData))&(word(cpu.a)^cpu.temp)&0x0080 > 0)
 	cpu.setStatusFlag(N, cpu.temp&0x0080 > 0)
 
-	cpu.a = uint8(cpu.temp & 0x00ff)
+	cpu.a = byte(cpu.temp & 0x00ff)
 	return 1
 }
 
@@ -426,55 +438,161 @@ func (cpu *Mos6502) and() uint8 {
 // asl performs an arithmetic shift left on data at an address in the Bus.
 func (cpu *Mos6502) asl() uint8 {
 	cpu.fetch()
-	cpu.temp = uint16(cpu.fetchedData) << 1
+	cpu.temp = word(cpu.fetchedData) << 1
 	cpu.setStatusFlag(C, (cpu.temp&0xff00) > 0)
 	cpu.setStatusFlag(Z, (cpu.temp&0x00ff) == 0x00)
 	cpu.setStatusFlag(N, cpu.temp&0x80 > 0)
 	if cpu.lookup[cpu.opcode].addressMode == imp {
-		cpu.a = uint8(cpu.temp & 0x00ff)
+		cpu.a = byte(cpu.temp & 0x00ff)
 	} else {
-		cpu.bus.Write(cpu.addressAbsolute, uint8(cpu.temp&0x00ff))
+		cpu.write(cpu.addressAbsolute, byte(cpu.temp&0x00ff))
 	}
 	return 0
 }
 
+// bcc is the Branch if Carry Clear operation. If a page change occurs as a
+// result, an extra cycle is required.
 func (cpu *Mos6502) bcc() uint8 {
+	if cpu.GetStatusFlag(C) == 0 {
+		cpu.cycles++
+		cpu.addressAbsolute = cpu.pc + cpu.addressRelative
+
+		if (cpu.addressAbsolute & 0xff00) != (cpu.pc & 0xff00) {
+			cpu.cycles++
+		}
+		cpu.pc = cpu.addressAbsolute
+	}
 	return 0
 }
 
+// bcs is the Branch if Carry set operation. If a page change occurs as a result,
+// an extra cycle is required.
 func (cpu *Mos6502) bcs() uint8 {
+	if cpu.GetStatusFlag(C) == 1 {
+		cpu.cycles++
+		cpu.addressAbsolute = cpu.pc + cpu.addressRelative
+
+		if (cpu.addressAbsolute & 0xff00) != (cpu.pc & 0xff00) {
+			cpu.cycles++
+		}
+		cpu.pc = cpu.addressAbsolute
+	}
 	return 0
 }
 
+// beq is the Branch if Equal operation. Does nothing if Z flag set to false.
+// Adds additional cycle if page change occurs as result.
 func (cpu *Mos6502) beq() uint8 {
+	if cpu.GetStatusFlag(Z) == 1 {
+		cpu.cycles++
+		cpu.addressAbsolute = cpu.pc + cpu.addressRelative
+
+		if (cpu.addressAbsolute & 0xff00) != (cpu.pc & 0xff00) {
+			cpu.cycles++
+		}
+		cpu.pc = cpu.addressAbsolute
+	}
 	return 0
 }
 
 func (cpu *Mos6502) bit() uint8 {
+	cpu.fetch()
+	cpu.temp = word(cpu.a & cpu.fetchedData)
+	cpu.setStatusFlag(Z, (cpu.temp&0x00ff) == 0x00)
+	cpu.setStatusFlag(N, (cpu.fetchedData&(1<<7)) > 0)
+	cpu.setStatusFlag(V, (cpu.fetchedData&(1<<6)) > 0)
 	return 0
 }
 
+// bmi is the Branch if Negative operation. Does nothing if N flag set to false.
+// Adds additional cycle if page change occurs as result.
 func (cpu *Mos6502) bmi() uint8 {
+	if cpu.GetStatusFlag(N) == 1 {
+		cpu.cycles++
+		cpu.addressAbsolute = cpu.pc + cpu.addressRelative
+
+		if (cpu.addressAbsolute & 0xff00) != (cpu.pc & 0xff00) {
+			cpu.cycles++
+		}
+		cpu.pc = cpu.addressAbsolute
+	}
 	return 0
 }
 
+// bne is the Branch if Not Equal operation. Does nothing if Z flag set to true.
+// Adds additional cycle if page change occurs as result.
 func (cpu *Mos6502) bne() uint8 {
+	if cpu.GetStatusFlag(Z) == 0 {
+		cpu.cycles++
+		cpu.addressAbsolute = cpu.pc + cpu.addressRelative
+
+		if (cpu.addressAbsolute & 0xff00) != (cpu.pc & 0xff00) {
+			cpu.cycles++
+		}
+		cpu.pc = cpu.addressAbsolute
+	}
 	return 0
 }
 
+// bpl is the Branch if Positive operation. Does nothing if N flag set to true.
+// Adds additional cycle if page change occurs as result.
 func (cpu *Mos6502) bpl() uint8 {
+	if cpu.GetStatusFlag(N) == 0 {
+		cpu.cycles++
+		cpu.addressAbsolute = cpu.pc + cpu.addressRelative
+
+		if (cpu.addressAbsolute & 0xff00) != (cpu.pc & 0xff00) {
+			cpu.cycles++
+		}
+		cpu.pc = cpu.addressAbsolute
+	}
 	return 0
 }
 
+// brk is the Break operation. It is used to signal an interrupt from the program.
 func (cpu *Mos6502) brk() uint8 {
+	cpu.pc++
+
+	cpu.setStatusFlag(I, true)
+	cpu.write(0x0100+word(cpu.stkp), byte((cpu.pc>>8)&0x00ff))
+	cpu.stkp--
+	cpu.write(0x0100+word(cpu.stkp), byte(cpu.pc&0x00ff))
+	cpu.stkp--
+
+	cpu.setStatusFlag(B, true)
+	cpu.write(0x0100+word(cpu.stkp), cpu.status)
+	cpu.stkp--
+	cpu.setStatusFlag(B, false)
+
+	cpu.pc = word(cpu.read(0xfffe)) | (word(cpu.read(0xffff)) << 8)
 	return 0
 }
 
+// bvc is the Branch if Overflow Clear operation. Does nothing if V set to true.
+// Adds additional cycle if page change occurs as result.
 func (cpu *Mos6502) bvc() uint8 {
+	if cpu.GetStatusFlag(V) == 0 {
+		cpu.cycles++
+		cpu.addressAbsolute = cpu.pc + cpu.addressRelative
+
+		if (cpu.addressAbsolute & 0xff00) != (cpu.pc & 0xff00) {
+			cpu.cycles++
+		}
+		cpu.pc = cpu.addressAbsolute
+	}
 	return 0
 }
 
 func (cpu *Mos6502) bvs() uint8 {
+	if cpu.GetStatusFlag(V) == 1 {
+		cpu.cycles++
+		cpu.addressAbsolute = cpu.pc + cpu.addressRelative
+
+		if (cpu.addressAbsolute & 0xff00) != (cpu.pc & 0xff00) {
+			cpu.cycles++
+		}
+		cpu.pc = cpu.addressAbsolute
+	}
 	return 0
 }
 
@@ -602,15 +720,15 @@ func (cpu *Mos6502) rts() uint8 {
 func (cpu *Mos6502) sbc() uint8 {
 	cpu.fetch()
 
-	value := uint16(cpu.fetchedData) ^ 0x00ff
-	cpu.temp = uint16(cpu.a) + value + uint16(cpu.GetStatusFlag(C))
+	value := word(cpu.fetchedData) ^ 0x00ff
+	cpu.temp = word(cpu.a) + value + word(cpu.GetStatusFlag(C))
 
-	cpu.setStatusFlag(C, cpu.temp&0xff00 > 0)
+	cpu.setStatusFlag(C, (cpu.temp&0xff00)>>7 == 1)
 	cpu.setStatusFlag(Z, (cpu.temp&0x00ff) == 0)
-	cpu.setStatusFlag(V, (cpu.temp^uint16(cpu.a))&(cpu.temp^value)&0x0080 > 0)
-	cpu.setStatusFlag(N, cpu.temp&0x0080 > 0)
+	cpu.setStatusFlag(V, (cpu.temp^word(cpu.a))&(cpu.temp^value)&0x0080 > 0)
+	cpu.setStatusFlag(N, (cpu.temp&0x0080) > 0)
 
-	cpu.a = uint8(cpu.temp & 0x00ff)
+	cpu.a = byte(cpu.temp & 0x00ff)
 	return 1
 }
 
