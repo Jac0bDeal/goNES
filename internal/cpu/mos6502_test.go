@@ -1495,7 +1495,7 @@ func TestMos6502_adc(t *testing.T) {
 			expectedAdditionalCycles: 1,
 		},
 		{
-			name: "P+N=P C=false cannont overflow",
+			name: "P+N=P C=false cannot overflow",
 
 			busValue:      0x7f,
 			initialAvalue: 0xff,
@@ -1509,7 +1509,7 @@ func TestMos6502_adc(t *testing.T) {
 			expectedAdditionalCycles: 1,
 		},
 		{
-			name: "P+N=P C=true cannont overflow",
+			name: "P+N=P C=true cannot overflow",
 
 			busValue:      0x7f,
 			initialAvalue: 0xff,
@@ -1523,7 +1523,7 @@ func TestMos6502_adc(t *testing.T) {
 			expectedAdditionalCycles: 1,
 		},
 		{
-			name: "P+N=N C=false cannont overflow",
+			name: "P+N=N C=false cannot overflow",
 
 			busValue:      0x1,
 			initialAvalue: 0x80,
@@ -1537,7 +1537,7 @@ func TestMos6502_adc(t *testing.T) {
 			expectedAdditionalCycles: 1,
 		},
 		{
-			name: "P+N=N C=true cannont overflow",
+			name: "P+N=N C=true cannot overflow",
 
 			busValue:      0x1,
 			initialAvalue: 0x81,
@@ -1568,6 +1568,288 @@ func TestMos6502_adc(t *testing.T) {
 			cpu.setStatusFlag(C, tc.initialCflag)
 
 			additionalCycles := cpu.adc()
+
+			assert.Equal(t, tc.expectedAvalue, cpu.a, "incorrect A value")
+			assert.Equal(t, tc.expectedCflag, cpu.GetStatusFlag(C), "incorrect C flag")
+			assert.Equal(t, tc.expectedZflag, cpu.GetStatusFlag(Z), "incorrect Z flag")
+			assert.Equal(t, tc.expectedVflag, cpu.GetStatusFlag(V), "incorrect V flag")
+			assert.Equal(t, tc.expectedNflag, cpu.GetStatusFlag(N), "incorrect N flag")
+			assert.Equal(t, tc.expectedAdditionalCycles, additionalCycles, "incorrect additional cycles")
+		})
+	}
+}
+
+func TestMos6502_sbc(t *testing.T) {
+	testCases := []struct {
+		name string
+
+		busValue      uint8
+		initialAvalue uint8
+		initialCflag  bool
+
+		expectedAvalue           uint8
+		expectedCflag            uint8
+		expectedZflag            uint8
+		expectedVflag            uint8
+		expectedNflag            uint8
+		expectedAdditionalCycles uint8
+	}{
+		{
+			name: "0-0=-1 C=false sets Z=true",
+
+			busValue:      0x00,
+			initialAvalue: 0x00,
+			initialCflag:  false,
+
+			expectedAvalue:           0xff,
+			expectedCflag:            0,
+			expectedZflag:            0,
+			expectedVflag:            0,
+			expectedNflag:            1,
+			expectedAdditionalCycles: 1,
+		},
+		{
+			name: "0-0=0 C=true sets Z=true",
+
+			busValue:      0x00,
+			initialAvalue: 0x00,
+			initialCflag:  true,
+
+			expectedAvalue:           0x00,
+			expectedCflag:            0,
+			expectedZflag:            1,
+			expectedVflag:            0,
+			expectedNflag:            0,
+			expectedAdditionalCycles: 1,
+		},
+		{
+			name: "P-P=-1 C=false sets Z=true",
+
+			busValue:      0x7f,
+			initialAvalue: 0x7f,
+			initialCflag:  false,
+
+			expectedAvalue:           0xff,
+			expectedCflag:            0,
+			expectedZflag:            0,
+			expectedVflag:            0,
+			expectedNflag:            1,
+			expectedAdditionalCycles: 1,
+		},
+		{
+			name: "P-P=0 C=true sets Z=true",
+
+			busValue:      0x7f,
+			initialAvalue: 0x7f,
+			initialCflag:  true,
+
+			expectedAvalue:           0x00,
+			expectedCflag:            0,
+			expectedZflag:            1,
+			expectedVflag:            0,
+			expectedNflag:            0,
+			expectedAdditionalCycles: 1,
+		},
+		{
+			name: "N-N=-1 C=false cannot overflow",
+
+			busValue:      0x80,
+			initialAvalue: 0x80,
+			initialCflag:  false,
+
+			expectedAvalue:           0xff,
+			expectedCflag:            0,
+			expectedZflag:            0,
+			expectedVflag:            0,
+			expectedNflag:            1,
+			expectedAdditionalCycles: 1,
+		},
+		{
+			name: "N-N=0 C=true cannot overflow",
+
+			busValue:      0x80,
+			initialAvalue: 0x80,
+			initialCflag:  true,
+
+			expectedAvalue:           0x00,
+			expectedCflag:            0,
+			expectedZflag:            1,
+			expectedVflag:            0,
+			expectedNflag:            0,
+			expectedAdditionalCycles: 1,
+		},
+		{
+			name: "N-N=P C=false cannot overflow",
+
+			busValue:      0x80,
+			initialAvalue: 0xff,
+			initialCflag:  false,
+
+			expectedAvalue:           0x7e,
+			expectedCflag:            0,
+			expectedZflag:            0,
+			expectedVflag:            0,
+			expectedNflag:            0,
+			expectedAdditionalCycles: 1,
+		},
+		{
+			name: "N-N=P C=true cannot overflow",
+
+			busValue:      0x80,
+			initialAvalue: 0xff,
+			initialCflag:  true,
+
+			expectedAvalue:           0x7f,
+			expectedCflag:            0,
+			expectedZflag:            0,
+			expectedVflag:            0,
+			expectedNflag:            0,
+			expectedAdditionalCycles: 1,
+		},
+		{
+			name: "0-N=N C=true overflows",
+
+			busValue:      0x80,
+			initialAvalue: 0x00,
+			initialCflag:  true,
+
+			expectedAvalue:           0x80,
+			expectedCflag:            0,
+			expectedZflag:            0,
+			expectedVflag:            1,
+			expectedNflag:            1,
+			expectedAdditionalCycles: 1,
+		},
+		{
+			name: "P-P=P C=false cannot overflow",
+
+			busValue:      0x01,
+			initialAvalue: 0x7f,
+			initialCflag:  false,
+
+			expectedAvalue:           0x7d,
+			expectedCflag:            0,
+			expectedZflag:            0,
+			expectedVflag:            0,
+			expectedNflag:            0,
+			expectedAdditionalCycles: 1,
+		},
+		{
+			name: "P-P=P C=true cannot overflow",
+
+			busValue:      0x7e,
+			initialAvalue: 0x7f,
+			initialCflag:  true,
+
+			expectedAvalue:           0x01,
+			expectedCflag:            0,
+			expectedZflag:            0,
+			expectedVflag:            0,
+			expectedNflag:            0,
+			expectedAdditionalCycles: 1,
+		},
+		{
+			name: "0-P=N C=false cannot overflow",
+
+			busValue:      0x7f,
+			initialAvalue: 0x00,
+			initialCflag:  false,
+
+			expectedAvalue:           0x80,
+			expectedCflag:            0,
+			expectedZflag:            0,
+			expectedVflag:            0,
+			expectedNflag:            1,
+			expectedAdditionalCycles: 1,
+		},
+		{
+			name: "0-P=N C=true cannot overflow",
+
+			busValue:      0x7f,
+			initialAvalue: 0x00,
+			initialCflag:  true,
+
+			expectedAvalue:           0x81,
+			expectedCflag:            0,
+			expectedZflag:            0,
+			expectedVflag:            0,
+			expectedNflag:            1,
+			expectedAdditionalCycles: 1,
+		},
+		{
+			name: "P-N=N C=false causes overflow",
+
+			busValue:      0x80,
+			initialAvalue: 0x01,
+			initialCflag:  false,
+
+			expectedAvalue:           0x80,
+			expectedCflag:            0,
+			expectedZflag:            0,
+			expectedVflag:            1,
+			expectedNflag:            1,
+			expectedAdditionalCycles: 1,
+		},
+		{
+			name: "P-N=N C=true causes overflow",
+
+			busValue:      0x80,
+			initialAvalue: 0x01,
+			initialCflag:  true,
+
+			expectedAvalue:           0x81,
+			expectedCflag:            0,
+			expectedZflag:            0,
+			expectedVflag:            1,
+			expectedNflag:            1,
+			expectedAdditionalCycles: 1,
+		},
+		{
+			name: "N-P=P C=false causes overflow",
+
+			busValue:      0x7f,
+			initialAvalue: 0xff,
+			initialCflag:  false,
+
+			expectedAvalue:           0x7f,
+			expectedCflag:            0,
+			expectedZflag:            0,
+			expectedVflag:            1,
+			expectedNflag:            0,
+			expectedAdditionalCycles: 1,
+		},
+		{
+			name: "N-P=P C=true cannot overflow",
+
+			busValue:      0x7f,
+			initialAvalue: 0xff,
+			initialCflag:  true,
+
+			expectedAvalue:           0x80,
+			expectedCflag:            0,
+			expectedZflag:            0,
+			expectedVflag:            0,
+			expectedNflag:            1,
+			expectedAdditionalCycles: 1,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			cpu := &Mos6502{
+				a:   tc.initialAvalue,
+				bus: bus.NewBus(bus.RAM{tc.busValue}),
+			}
+			cpu.lookup = mos6502LookupTable{
+				{
+					operation:      adc,
+					addressMode:    "TST",
+					performOp:      cpu.adc,
+					setAddressMode: func() uint8 { return 0 },
+				},
+			}
+			cpu.setStatusFlag(C, tc.initialCflag)
+
+			additionalCycles := cpu.sbc()
 
 			assert.Equal(t, tc.expectedAvalue, cpu.a, "incorrect A value")
 			assert.Equal(t, tc.expectedCflag, cpu.GetStatusFlag(C), "incorrect C flag")

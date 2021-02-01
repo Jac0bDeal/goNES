@@ -399,7 +399,7 @@ func (cpu *Mos6502) izy() uint8 {
 // Opcodes /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// adc is add with carry.
+// adc is addition with carry in operation.
 func (cpu *Mos6502) adc() uint8 {
 	cpu.fetch()
 
@@ -408,7 +408,7 @@ func (cpu *Mos6502) adc() uint8 {
 	cpu.setStatusFlag(C, cpu.temp > 255)
 	cpu.setStatusFlag(Z, (cpu.temp&0x00ff) == 0)
 	cpu.setStatusFlag(V, (^(uint16(cpu.a)^uint16(cpu.fetchedData))&(uint16(cpu.a)^cpu.temp)&0x0080)>>7 == 1)
-	cpu.setStatusFlag(N, (cpu.temp&0x80)>>7 == 1)
+	cpu.setStatusFlag(N, (cpu.temp&0x0080)>>7 == 1)
 
 	cpu.a = uint8(cpu.temp & 0x00ff)
 	return 1
@@ -582,8 +582,20 @@ func (cpu *Mos6502) rts() uint8 {
 	return 0
 }
 
+// sbc is the subtract with borrow in operation.
 func (cpu *Mos6502) sbc() uint8 {
-	return 0
+	cpu.fetch()
+
+	value := uint16(cpu.fetchedData) ^ 0x00ff
+	cpu.temp = uint16(cpu.a) + value + uint16(cpu.GetStatusFlag(C))
+
+	cpu.setStatusFlag(C, (cpu.temp&0xff00)>>7 == 1)
+	cpu.setStatusFlag(Z, (cpu.temp&0x00ff) == 0)
+	cpu.setStatusFlag(V, ((cpu.temp^uint16(cpu.a))&(cpu.temp^value)&0x0080)>>7 == 1)
+	cpu.setStatusFlag(N, (cpu.temp&0x0080)>>7 == 1)
+
+	cpu.a = uint8(cpu.temp & 0x00ff)
+	return 1
 }
 
 func (cpu *Mos6502) sec() uint8 {
