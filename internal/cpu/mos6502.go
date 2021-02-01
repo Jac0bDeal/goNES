@@ -139,19 +139,73 @@ func (cpu *Mos6502) Clock() {
 	cpu.cycles--
 }
 
-// Reset is the reset signal.
+// Reset signals the cpu to reset to a known state.
 func (cpu *Mos6502) Reset() {
+	cpu.addressAbsolute = 0xfffc
+	lowByte := cpu.bus.Read(cpu.addressAbsolute)
+	highByte := cpu.bus.Read(cpu.addressAbsolute + 1)
 
+	cpu.pc = (uint16(highByte) << 8) | uint16(lowByte)
+
+	cpu.a = 0x00
+	cpu.x = 0x00
+	cpu.y = 0x00
+	cpu.stkp = 0xfd
+	cpu.status = 0x00 | uint8(U)
+
+	cpu.addressRelative = 0x0000
+	cpu.addressAbsolute = 0x0000
+	cpu.fetchedData = 0x00
+
+	cpu.cycles = 8
 }
 
-// InterruptRequest is the interrupt request signal.
+// InterruptRequest is the interrupt request signal. Requires the Interrupt
+// Disable (I) flag to be set to 0 or else nothing happens. The currently running
+// instruction is allowed to complete before the Interrupt Request does its thing.
 func (cpu *Mos6502) InterruptRequest() {
+	if cpu.GetStatusFlag(I) == 0 {
+		cpu.bus.Write(0x0100+uint16(cpu.stkp), uint8((cpu.pc>>8)&0x00ff))
+		cpu.stkp--
+		cpu.bus.Write(0x0100+uint16(cpu.stkp), uint8(cpu.pc&0x00ff))
+		cpu.stkp--
 
+		cpu.setStatusFlag(B, false)
+		cpu.setStatusFlag(U, true)
+		cpu.setStatusFlag(I, true)
+		cpu.bus.Write(0x0100+uint16(cpu.stkp), cpu.status)
+		cpu.stkp--
+
+		cpu.addressAbsolute = 0xfffe
+		lowByte := cpu.bus.Read(cpu.addressAbsolute)
+		highByte := cpu.bus.Read(cpu.addressAbsolute + 1)
+		cpu.pc = (uint16(highByte) << 8) | uint16(lowByte)
+
+		cpu.cycles = 7
+	}
 }
 
-// NonMaskableInterrupt is the non-maskable interrupt request signal.
+// NonMaskableInterrupt is the non-maskable interrupt request signal, which
+// cannot be ignored. It has the same behavior as the normal Interrupt Request
+// but reads 0xfffa to set the program counter.
 func (cpu *Mos6502) NonMaskableInterrupt() {
+	cpu.bus.Write(0x0100+uint16(cpu.stkp), uint8((cpu.pc>>8)&0x00ff))
+	cpu.stkp--
+	cpu.bus.Write(0x0100+uint16(cpu.stkp), uint8(cpu.pc&0x00ff))
+	cpu.stkp--
 
+	cpu.setStatusFlag(B, false)
+	cpu.setStatusFlag(U, true)
+	cpu.setStatusFlag(I, true)
+	cpu.bus.Write(0x0100+uint16(cpu.stkp), cpu.status)
+	cpu.stkp--
+
+	cpu.addressAbsolute = 0xfffa
+	lowByte := cpu.bus.Read(cpu.addressAbsolute)
+	highByte := cpu.bus.Read(cpu.addressAbsolute + 1)
+	cpu.pc = (uint16(highByte) << 8) | uint16(lowByte)
+
+	cpu.cycles = 8
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

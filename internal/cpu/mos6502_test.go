@@ -26,6 +26,422 @@ func newTestMos6502() *Mos6502 {
 	}
 }
 
+func TestMos6502_Clock(t *testing.T) {
+	testCases := []struct {
+		name              string
+		setupInitialState func(*testing.T) *Mos6502
+		expectedPC        uint16
+		expectedA         uint8
+		expectedX         uint8
+		expectedY         uint8
+		expectedStkp      uint8
+		expectedStatus    uint8
+		expectedCycles    uint8
+	}{
+		{
+			name: "cpu only decrements cycle count if non-zero",
+			setupInitialState: func(*testing.T) *Mos6502 {
+				return &Mos6502{
+					pc:     0x0000,
+					a:      0x11,
+					x:      0x11,
+					y:      0x11,
+					stkp:   0x11,
+					status: 0b00000000,
+					cycles: 1,
+					lookup: mos6502LookupTable{
+						{
+							operation:   "TOP",
+							addressMode: "TAM",
+							performOp: func() uint8 {
+								return 0
+							},
+							setAddressMode: func() uint8 {
+								return 0
+							},
+							cycles: 0,
+						},
+					},
+					bus: bus.NewBus(bus.RAM{}),
+				}
+			},
+			expectedPC:     0x0000,
+			expectedA:      0x11,
+			expectedX:      0x11,
+			expectedY:      0x11,
+			expectedStkp:   0x11,
+			expectedStatus: 0b00000000,
+			expectedCycles: 0,
+		},
+		{
+			name: "cpu performs clock cycle correctly with no additional cycles",
+			setupInitialState: func(t *testing.T) *Mos6502 {
+				t.Helper()
+				cpu := &Mos6502{
+					pc:     0x0000,
+					a:      0x11,
+					x:      0x11,
+					y:      0x11,
+					stkp:   0x11,
+					status: 0b00000000,
+					cycles: 0,
+					bus: bus.NewBus(bus.RAM{
+						0x00,
+					}),
+				}
+				cpu.lookup = mos6502LookupTable{
+					{
+						operation:   "TOP",
+						addressMode: "TAM",
+						performOp: func() uint8 {
+							// assert that U flag is set to true first
+							assert.Equal(t, uint8(0x01), cpu.GetStatusFlag(U))
+							// set U flag to false for final state assertion
+							cpu.setStatusFlag(U, false)
+							return 0
+						},
+						setAddressMode: func() uint8 {
+							return 0
+						},
+						cycles: 2,
+					},
+				}
+				return cpu
+			},
+			expectedPC:     0x0001,
+			expectedA:      0x11,
+			expectedX:      0x11,
+			expectedY:      0x11,
+			expectedStkp:   0x11,
+			expectedStatus: 0b00100000,
+			expectedCycles: 1,
+		},
+		{
+			name: "cpu performs clock cycle with additional operation cycle only",
+			setupInitialState: func(t *testing.T) *Mos6502 {
+				t.Helper()
+				cpu := &Mos6502{
+					pc:     0x0000,
+					a:      0x11,
+					x:      0x11,
+					y:      0x11,
+					stkp:   0x11,
+					status: 0b00000000,
+					cycles: 0,
+					bus: bus.NewBus(bus.RAM{
+						0x00,
+					}),
+				}
+				cpu.lookup = mos6502LookupTable{
+					{
+						operation:   "TOP",
+						addressMode: "TAM",
+						performOp: func() uint8 {
+							return 1
+						},
+						setAddressMode: func() uint8 {
+							return 0
+						},
+						cycles: 2,
+					},
+				}
+				return cpu
+			},
+			expectedPC:     0x0001,
+			expectedA:      0x11,
+			expectedX:      0x11,
+			expectedY:      0x11,
+			expectedStkp:   0x11,
+			expectedStatus: 0b00100000,
+			expectedCycles: 1,
+		},
+		{
+			name: "cpu performs clock cycle with additional address mode cycle only",
+			setupInitialState: func(t *testing.T) *Mos6502 {
+				t.Helper()
+				cpu := &Mos6502{
+					pc:     0x0000,
+					a:      0x11,
+					x:      0x11,
+					y:      0x11,
+					stkp:   0x11,
+					status: 0b00000000,
+					cycles: 0,
+					bus: bus.NewBus(bus.RAM{
+						0x00,
+					}),
+				}
+				cpu.lookup = mos6502LookupTable{
+					{
+						operation:   "TOP",
+						addressMode: "TAM",
+						performOp: func() uint8 {
+							return 0
+						},
+						setAddressMode: func() uint8 {
+							return 1
+						},
+						cycles: 2,
+					},
+				}
+				return cpu
+			},
+			expectedPC:     0x0001,
+			expectedA:      0x11,
+			expectedX:      0x11,
+			expectedY:      0x11,
+			expectedStkp:   0x11,
+			expectedStatus: 0b00100000,
+			expectedCycles: 1,
+		},
+		{
+			name: "cpu performs clock cycle with additional address mode cycle only",
+			setupInitialState: func(t *testing.T) *Mos6502 {
+				t.Helper()
+				cpu := &Mos6502{
+					pc:     0x0000,
+					a:      0x11,
+					x:      0x11,
+					y:      0x11,
+					stkp:   0x11,
+					status: 0b00000000,
+					cycles: 0,
+					bus: bus.NewBus(bus.RAM{
+						0x00,
+					}),
+				}
+				cpu.lookup = mos6502LookupTable{
+					{
+						operation:   "TOP",
+						addressMode: "TAM",
+						performOp: func() uint8 {
+							return 1
+						},
+						setAddressMode: func() uint8 {
+							return 1
+						},
+						cycles: 2,
+					},
+				}
+				return cpu
+			},
+			expectedPC:     0x0001,
+			expectedA:      0x11,
+			expectedX:      0x11,
+			expectedY:      0x11,
+			expectedStkp:   0x11,
+			expectedStatus: 0b00100000,
+			expectedCycles: 2,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			cpu := tc.setupInitialState(t)
+			cpu.Clock()
+
+			assert.Equal(t, tc.expectedPC, cpu.pc)
+			assert.Equal(t, tc.expectedA, cpu.a)
+			assert.Equal(t, tc.expectedX, cpu.x)
+			assert.Equal(t, tc.expectedY, cpu.y)
+			assert.Equal(t, tc.expectedStkp, cpu.stkp)
+			assert.Equal(t, tc.expectedStatus, cpu.status)
+			assert.Equal(t, tc.expectedCycles, cpu.cycles)
+		})
+	}
+}
+
+func TestMos6502_Reset(t *testing.T) {
+	testRAM := bus.RAM{}
+	testRAM[0xfffc] = 0x20
+	testRAM[0xfffd] = 0x04
+	testCases := []struct {
+		name          string
+		initialState  *Mos6502
+		expectedState *Mos6502
+	}{
+		{
+			name: "cpu resets correctly",
+			initialState: &Mos6502{
+				pc:              0x1111,
+				a:               0x11,
+				x:               0x11,
+				y:               0x11,
+				stkp:            0x11,
+				status:          0b11111111,
+				addressAbsolute: 0x1111,
+				addressRelative: 0x1111,
+				fetchedData:     0x11,
+				cycles:          1,
+				bus:             bus.NewBus(testRAM),
+			},
+			expectedState: &Mos6502{
+				pc:              0x0420,
+				a:               0x00,
+				x:               0x00,
+				y:               0x00,
+				stkp:            0xfd,
+				status:          0b00100000,
+				addressAbsolute: 0x0000,
+				addressRelative: 0x0000,
+				fetchedData:     0x00,
+				cycles:          8,
+				bus:             bus.NewBus(testRAM),
+			},
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			cpu := tc.initialState
+			cpu.Reset()
+
+			assert.Equal(t, tc.expectedState, cpu)
+		})
+	}
+}
+
+func TestMos6502_InterruptRequest(t *testing.T) {
+	testRAM := bus.RAM{}
+	testRAM[0xfffe] = 0x20
+	testRAM[0xffff] = 0x04
+
+	expectedSuccessRAM := bus.RAM{}
+	expectedSuccessRAM[0x010f] = 0b00100100
+	expectedSuccessRAM[0x0110] = 0x20
+	expectedSuccessRAM[0x0111] = 0x04
+	expectedSuccessRAM[0xfffe] = 0x20
+	expectedSuccessRAM[0xffff] = 0x04
+
+	testCases := []struct {
+		name          string
+		initialState  *Mos6502
+		expectedState *Mos6502
+	}{
+		{
+			name: "cpu Interrupt Request does nothing with I true",
+			initialState: &Mos6502{
+				pc:              0x1111,
+				a:               0x11,
+				x:               0x11,
+				y:               0x11,
+				stkp:            0x11,
+				status:          0b00100100,
+				addressAbsolute: 0x1111,
+				addressRelative: 0x1111,
+				fetchedData:     0x11,
+				cycles:          1,
+				bus:             bus.NewBus(testRAM),
+			},
+			expectedState: &Mos6502{
+				pc:              0x1111,
+				a:               0x11,
+				x:               0x11,
+				y:               0x11,
+				stkp:            0x11,
+				status:          0b00100100,
+				addressAbsolute: 0x1111,
+				addressRelative: 0x1111,
+				fetchedData:     0x11,
+				cycles:          1,
+				bus:             bus.NewBus(testRAM),
+			},
+		},
+		{
+			name: "cpu Interrupt Request executes correctly",
+			initialState: &Mos6502{
+				pc:              0x0420,
+				a:               0x11,
+				x:               0x11,
+				y:               0x11,
+				stkp:            0x11,
+				status:          0b00010000,
+				addressAbsolute: 0x1111,
+				addressRelative: 0x1111,
+				fetchedData:     0x11,
+				cycles:          1,
+				bus:             bus.NewBus(testRAM),
+			},
+			expectedState: &Mos6502{
+				pc:              0x0420,
+				a:               0x11,
+				x:               0x11,
+				y:               0x11,
+				stkp:            0x0e,
+				status:          0b00100100,
+				addressAbsolute: 0xfffe,
+				addressRelative: 0x1111,
+				fetchedData:     0x11,
+				cycles:          7,
+				bus:             bus.NewBus(expectedSuccessRAM),
+			},
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			cpu := tc.initialState
+			cpu.InterruptRequest()
+
+			assert.Equal(t, tc.expectedState, cpu)
+		})
+	}
+}
+
+func TestMos6502_NonMaskableInterrupt(t *testing.T) {
+	testRAM := bus.RAM{}
+	testRAM[0xfffa] = 0x20
+	testRAM[0xfffb] = 0x04
+
+	expectedSuccessRAM := bus.RAM{}
+	expectedSuccessRAM[0x010f] = 0b00100100
+	expectedSuccessRAM[0x0110] = 0x20
+	expectedSuccessRAM[0x0111] = 0x04
+	expectedSuccessRAM[0xfffa] = 0x20
+	expectedSuccessRAM[0xfffb] = 0x04
+
+	testCases := []struct {
+		name          string
+		initialState  *Mos6502
+		expectedState *Mos6502
+	}{
+		{
+			name: "cpu NMI request executes correctly",
+			initialState: &Mos6502{
+				pc:              0x0420,
+				a:               0x11,
+				x:               0x11,
+				y:               0x11,
+				stkp:            0x11,
+				status:          0b00010000,
+				addressAbsolute: 0x1111,
+				addressRelative: 0x1111,
+				fetchedData:     0x11,
+				cycles:          1,
+				bus:             bus.NewBus(testRAM),
+			},
+			expectedState: &Mos6502{
+				pc:              0x0420,
+				a:               0x11,
+				x:               0x11,
+				y:               0x11,
+				stkp:            0x0e,
+				status:          0b00100100,
+				addressAbsolute: 0xfffa,
+				addressRelative: 0x1111,
+				fetchedData:     0x11,
+				cycles:          8,
+				bus:             bus.NewBus(expectedSuccessRAM),
+			},
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			cpu := tc.initialState
+			cpu.NonMaskableInterrupt()
+
+			assert.Equal(t, tc.expectedState, cpu)
+		})
+	}
+}
+
 func TestMos6502_GetStatusFlag(t *testing.T) {
 	cpu := newTestMos6502()
 	cpu.status = 0b10101010
