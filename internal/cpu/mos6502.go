@@ -266,7 +266,7 @@ func (cpu *Mos6502) zpy() uint8 {
 func (cpu *Mos6502) rel() uint8 {
 	b := cpu.bus.Read(cpu.pc)
 	cpu.pc++
-	if (b&0x80)>>7 == 1 {
+	if b&0x80 > 0 {
 		cpu.addressRelative = uint16(b) | 0xff00
 	} else {
 		cpu.addressRelative = uint16(b)
@@ -407,18 +407,34 @@ func (cpu *Mos6502) adc() uint8 {
 
 	cpu.setStatusFlag(C, cpu.temp > 255)
 	cpu.setStatusFlag(Z, (cpu.temp&0x00ff) == 0)
-	cpu.setStatusFlag(V, (^(uint16(cpu.a)^uint16(cpu.fetchedData))&(uint16(cpu.a)^cpu.temp)&0x0080)>>7 == 1)
-	cpu.setStatusFlag(N, (cpu.temp&0x0080)>>7 == 1)
+	cpu.setStatusFlag(V, ^(uint16(cpu.a)^uint16(cpu.fetchedData))&(uint16(cpu.a)^cpu.temp)&0x0080 > 0)
+	cpu.setStatusFlag(N, cpu.temp&0x0080 > 0)
 
 	cpu.a = uint8(cpu.temp & 0x00ff)
 	return 1
 }
 
+// and performs a bitwise AND on the value in the Accumulator and fetched data.
 func (cpu *Mos6502) and() uint8 {
-	return 0
+	cpu.fetch()
+	cpu.a = cpu.a & cpu.fetchedData
+	cpu.setStatusFlag(Z, cpu.a == 0x00)
+	cpu.setStatusFlag(N, cpu.a&0x80 > 0)
+	return 1
 }
 
+// asl performs an arithmetic shift left on data at an address in the Bus.
 func (cpu *Mos6502) asl() uint8 {
+	cpu.fetch()
+	cpu.temp = uint16(cpu.fetchedData) << 1
+	cpu.setStatusFlag(C, (cpu.temp&0xff00) > 0)
+	cpu.setStatusFlag(Z, (cpu.temp&0x00ff) == 0x00)
+	cpu.setStatusFlag(N, cpu.temp&0x80 > 0)
+	if cpu.lookup[cpu.opcode].addressMode == imp {
+		cpu.a = uint8(cpu.temp & 0x00ff)
+	} else {
+		cpu.bus.Write(cpu.addressAbsolute, uint8(cpu.temp&0x00ff))
+	}
 	return 0
 }
 
@@ -589,10 +605,10 @@ func (cpu *Mos6502) sbc() uint8 {
 	value := uint16(cpu.fetchedData) ^ 0x00ff
 	cpu.temp = uint16(cpu.a) + value + uint16(cpu.GetStatusFlag(C))
 
-	cpu.setStatusFlag(C, (cpu.temp&0xff00)>>7 == 1)
+	cpu.setStatusFlag(C, cpu.temp&0xff00 > 0)
 	cpu.setStatusFlag(Z, (cpu.temp&0x00ff) == 0)
-	cpu.setStatusFlag(V, ((cpu.temp^uint16(cpu.a))&(cpu.temp^value)&0x0080)>>7 == 1)
-	cpu.setStatusFlag(N, (cpu.temp&0x0080)>>7 == 1)
+	cpu.setStatusFlag(V, (cpu.temp^uint16(cpu.a))&(cpu.temp^value)&0x0080 > 0)
+	cpu.setStatusFlag(N, cpu.temp&0x0080 > 0)
 
 	cpu.a = uint8(cpu.temp & 0x00ff)
 	return 1

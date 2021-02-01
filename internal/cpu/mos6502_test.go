@@ -1579,6 +1579,185 @@ func TestMos6502_adc(t *testing.T) {
 	}
 }
 
+func TestMos6502_and(t *testing.T) {
+	testCases := []struct {
+		name string
+
+		aValue    uint8
+		dataValue uint8
+
+		expectedAvalue           uint8
+		expectedZflag            uint8
+		expectedNflag            uint8
+		expectedAdditionalCycles uint8
+	}{
+		{
+			name:      "and operation performed correctly",
+			aValue:    0b00100101,
+			dataValue: 0b00100001,
+
+			expectedAvalue:           0b00100001,
+			expectedZflag:            0,
+			expectedNflag:            0,
+			expectedAdditionalCycles: 1,
+		},
+		{
+			name:      "and operation results in 0 sets Z true",
+			aValue:    0b00100101,
+			dataValue: 0b10000010,
+
+			expectedAvalue:           0b00000000,
+			expectedZflag:            1,
+			expectedNflag:            0,
+			expectedAdditionalCycles: 1,
+		},
+		{
+			name:      "and operation results in negative result sets N true",
+			aValue:    0b10100101,
+			dataValue: 0b10000100,
+
+			expectedAvalue:           0b10000100,
+			expectedZflag:            0,
+			expectedNflag:            1,
+			expectedAdditionalCycles: 1,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			cpu := &Mos6502{
+				a:               tc.aValue,
+				addressAbsolute: 0x0000,
+				bus:             bus.NewBus(bus.RAM{tc.dataValue}),
+			}
+			additionalCycles := cpu.and()
+
+			assert.Equal(t, tc.expectedAvalue, cpu.a, "incorrect A value")
+			assert.Equal(t, tc.expectedZflag, cpu.GetStatusFlag(Z), "incorrect Z flag")
+			assert.Equal(t, tc.expectedNflag, cpu.GetStatusFlag(N), "incorrect N flag")
+			assert.Equal(t, tc.expectedAdditionalCycles, additionalCycles)
+		})
+	}
+}
+
+func TestMos6502_asl(t *testing.T) {
+	testCases := []struct {
+		name string
+
+		dataValue   uint8
+		instruction instruction
+
+		expectedAvalue           uint8
+		expectedBusValue         uint8
+		expectedCflag            uint8
+		expectedZflag            uint8
+		expectedNflag            uint8
+		expectedAdditionalCycles uint8
+	}{
+		{
+			name: "asl operation in implied mode performed correctly",
+
+			dataValue: 0b00000001,
+			instruction: instruction{
+				operation:   asl,
+				addressMode: imp,
+			},
+
+			expectedAvalue:           0b00000010,
+			expectedBusValue:         0b00000000,
+			expectedCflag:            0,
+			expectedZflag:            0,
+			expectedNflag:            0,
+			expectedAdditionalCycles: 0,
+		},
+		{
+			name: "asl operation in non-implied mode performed correctly",
+
+			dataValue: 0b00000001,
+			instruction: instruction{
+				operation:   asl,
+				addressMode: "TST",
+			},
+
+			expectedAvalue:           0b00000000,
+			expectedBusValue:         0b00000010,
+			expectedCflag:            0,
+			expectedZflag:            0,
+			expectedNflag:            0,
+			expectedAdditionalCycles: 0,
+		},
+		{
+			name: "asl operation resulting in 0 sets Z true",
+
+			dataValue: 0b00000000,
+			instruction: instruction{
+				operation:   asl,
+				addressMode: imp,
+			},
+
+			expectedAvalue:           0b00000000,
+			expectedBusValue:         0b00000000,
+			expectedCflag:            0,
+			expectedZflag:            1,
+			expectedNflag:            0,
+			expectedAdditionalCycles: 0,
+		},
+		{
+			name: "asl operation resulting in negative result sets N true",
+
+			dataValue: 0b01000010,
+			instruction: instruction{
+				operation:   asl,
+				addressMode: imp,
+			},
+
+			expectedAvalue:           0b10000100,
+			expectedBusValue:         0b00000000,
+			expectedCflag:            0,
+			expectedZflag:            0,
+			expectedNflag:            1,
+			expectedAdditionalCycles: 0,
+		},
+		{
+			name: "asl operation resulting in carry sets C true",
+
+			dataValue: 0b10000001,
+			instruction: instruction{
+				operation:   asl,
+				addressMode: imp,
+			},
+
+			expectedAvalue:           0b00000010,
+			expectedBusValue:         0b00000000,
+			expectedCflag:            1,
+			expectedZflag:            0,
+			expectedNflag:            0,
+			expectedAdditionalCycles: 0,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			cpu := &Mos6502{
+				addressAbsolute: 0x0000,
+				bus:             bus.NewBus(bus.RAM{}),
+				lookup:          mos6502LookupTable{tc.instruction},
+			}
+			if tc.instruction.addressMode == imp {
+				cpu.fetchedData = tc.dataValue
+			} else {
+				cpu.bus.Write(cpu.addressAbsolute, tc.dataValue)
+			}
+			additionalCycles := cpu.asl()
+
+			assert.Equal(t, tc.expectedAvalue, cpu.a, "incorrect A value")
+			assert.Equal(t, tc.expectedBusValue, cpu.bus.Read(cpu.addressAbsolute), "incorrect Bus value")
+			assert.Equal(t, tc.expectedCflag, cpu.GetStatusFlag(C), "incorrect C flag")
+			assert.Equal(t, tc.expectedZflag, cpu.GetStatusFlag(Z), "incorrect Z flag")
+			assert.Equal(t, tc.expectedNflag, cpu.GetStatusFlag(N), "incorrect N flag")
+			assert.Equal(t, tc.expectedAdditionalCycles, additionalCycles, "incorrect additional cycles value")
+		})
+	}
+}
+
 func TestMos6502_sbc(t *testing.T) {
 	testCases := []struct {
 		name string
