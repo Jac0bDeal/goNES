@@ -2160,7 +2160,7 @@ func TestMos6502_bmi(t *testing.T) {
 			additionalCycles := cpu.bmi()
 
 			assert.Equal(t, tc.expectedState, cpu)
-			assert.Equal(t, tc.expectedAdditionalCycles, additionalCycles)
+			assert.Equal(t, tc.expectedAdditionalCycles, additionalCycles, "incorrect additional cycles")
 		})
 	}
 }
@@ -2243,7 +2243,7 @@ func TestMos6502_bne(t *testing.T) {
 			additionalCycles := cpu.bne()
 
 			assert.Equal(t, tc.expectedState, cpu)
-			assert.Equal(t, tc.expectedAdditionalCycles, additionalCycles)
+			assert.Equal(t, tc.expectedAdditionalCycles, additionalCycles, "incorrect additional cycles")
 		})
 	}
 }
@@ -2326,7 +2326,7 @@ func TestMos6502_bpl(t *testing.T) {
 			additionalCycles := cpu.bpl()
 
 			assert.Equal(t, tc.expectedState, cpu)
-			assert.Equal(t, tc.expectedAdditionalCycles, additionalCycles)
+			assert.Equal(t, tc.expectedAdditionalCycles, additionalCycles, "incorrect additional cycles")
 		})
 	}
 }
@@ -2372,7 +2372,7 @@ func TestMos6502_brk(t *testing.T) {
 			additionalCycles := cpu.brk()
 
 			assert.Equal(t, tc.expectedState, cpu)
-			assert.Equal(t, tc.expectedAdditionalCycles, additionalCycles)
+			assert.Equal(t, tc.expectedAdditionalCycles, additionalCycles, "incorrect additional cycles")
 		})
 	}
 }
@@ -2455,7 +2455,7 @@ func TestMos6502_bvc(t *testing.T) {
 			additionalCycles := cpu.bvc()
 
 			assert.Equal(t, tc.expectedState, cpu)
-			assert.Equal(t, tc.expectedAdditionalCycles, additionalCycles)
+			assert.Equal(t, tc.expectedAdditionalCycles, additionalCycles, "incorrect additional cycles")
 		})
 	}
 }
@@ -2538,7 +2538,325 @@ func TestMos6502_bvs(t *testing.T) {
 			additionalCycles := cpu.bvs()
 
 			assert.Equal(t, tc.expectedState, cpu)
-			assert.Equal(t, tc.expectedAdditionalCycles, additionalCycles)
+			assert.Equal(t, tc.expectedAdditionalCycles, additionalCycles, "incorrect additional cycles")
+		})
+	}
+}
+
+func TestMos6502_clc(t *testing.T) {
+	testCases := []struct {
+		name                     string
+		initialCflag             bool
+		expectedCflag            uint8
+		expectedAdditionalCycles uint8
+	}{
+		{
+			name:                     "sets C=true to false",
+			initialCflag:             true,
+			expectedCflag:            0,
+			expectedAdditionalCycles: 0,
+		},
+		{
+			name:                     "sets C=false to false",
+			initialCflag:             false,
+			expectedCflag:            0,
+			expectedAdditionalCycles: 0,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			cpu := newTestMos6502()
+			cpu.setStatusFlag(C, tc.initialCflag)
+			additionalCycles := cpu.clc()
+
+			assert.Equal(t, tc.expectedCflag, cpu.GetStatusFlag(C), "incorrect C flag")
+			assert.Equal(t, tc.expectedAdditionalCycles, additionalCycles, "incorrect additional cycles")
+		})
+	}
+}
+
+func TestMos6502_cld(t *testing.T) {
+	testCases := []struct {
+		name                     string
+		initialDflag             bool
+		expectedDflag            uint8
+		expectedAdditionalCycles uint8
+	}{
+		{
+			name:                     "sets D=true to false",
+			initialDflag:             true,
+			expectedDflag:            0,
+			expectedAdditionalCycles: 0,
+		},
+		{
+			name:                     "sets D=false to false",
+			initialDflag:             false,
+			expectedDflag:            0,
+			expectedAdditionalCycles: 0,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			cpu := newTestMos6502()
+			cpu.setStatusFlag(D, tc.initialDflag)
+			additionalCycles := cpu.cld()
+
+			assert.Equal(t, tc.expectedDflag, cpu.GetStatusFlag(D), "incorrect D flag")
+			assert.Equal(t, tc.expectedAdditionalCycles, additionalCycles, "incorrect additional cycles")
+		})
+	}
+}
+
+func TestMos6502_cli(t *testing.T) {
+	testCases := []struct {
+		name                     string
+		initialIflag             bool
+		expectedIflag            uint8
+		expectedAdditionalCycles uint8
+	}{
+		{
+			name:                     "sets I=true to false",
+			initialIflag:             true,
+			expectedIflag:            0,
+			expectedAdditionalCycles: 0,
+		},
+		{
+			name:                     "sets I=false to false",
+			initialIflag:             false,
+			expectedIflag:            0,
+			expectedAdditionalCycles: 0,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			cpu := newTestMos6502()
+			cpu.setStatusFlag(I, tc.initialIflag)
+			additionalCycles := cpu.cli()
+
+			assert.Equal(t, tc.expectedIflag, cpu.GetStatusFlag(I), "incorrect I flag")
+			assert.Equal(t, tc.expectedAdditionalCycles, additionalCycles, "incorrect additional cycles")
+		})
+	}
+}
+
+func TestMos6502_clv(t *testing.T) {
+	testCases := []struct {
+		name                     string
+		initialVflag             bool
+		expectedVflag            uint8
+		expectedAdditionalCycles uint8
+	}{
+		{
+			name:                     "sets V=true to false",
+			initialVflag:             true,
+			expectedVflag:            0,
+			expectedAdditionalCycles: 0,
+		},
+		{
+			name:                     "sets V=false to false",
+			initialVflag:             false,
+			expectedVflag:            0,
+			expectedAdditionalCycles: 0,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			cpu := newTestMos6502()
+			cpu.setStatusFlag(V, tc.initialVflag)
+			additionalCycles := cpu.clv()
+
+			assert.Equal(t, tc.expectedVflag, cpu.GetStatusFlag(V), "incorrect V flag")
+			assert.Equal(t, tc.expectedAdditionalCycles, additionalCycles, "incorrect additional cycles")
+		})
+	}
+}
+
+func TestMos6502_cmp(t *testing.T) {
+	testCases := []struct {
+		name string
+
+		aValue  byte
+		busData byte
+
+		expectedCflag            uint8
+		expectedZflag            uint8
+		expectedNflag            uint8
+		expectedAdditionalCycles uint8
+	}{
+		{
+			name: "A=M results in Z=true",
+
+			aValue:  0x42,
+			busData: 0x42,
+
+			expectedCflag:            1,
+			expectedNflag:            0,
+			expectedZflag:            1,
+			expectedAdditionalCycles: 1,
+		},
+		{
+			name: "A>=M results in C=true",
+
+			aValue:  0x42,
+			busData: 0x01,
+
+			expectedCflag:            1,
+			expectedNflag:            0,
+			expectedZflag:            0,
+			expectedAdditionalCycles: 1,
+		},
+		{
+			name: "A<=M results in N=true",
+
+			aValue:  0x01,
+			busData: 0x42,
+
+			expectedCflag:            0,
+			expectedNflag:            1,
+			expectedZflag:            0,
+			expectedAdditionalCycles: 1,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			cpu := newTestMos6502()
+			cpu.a = tc.aValue
+			cpu.write(0x0000, tc.busData)
+			additionalCycles := cpu.cmp()
+
+			assert.Equal(t, tc.expectedCflag, cpu.GetStatusFlag(C), "incorrect C flag")
+			assert.Equal(t, tc.expectedZflag, cpu.GetStatusFlag(Z), "incorrect Z flag")
+			assert.Equal(t, tc.expectedNflag, cpu.GetStatusFlag(N), "incorrect N flag")
+			assert.Equal(t, tc.expectedAdditionalCycles, additionalCycles, "incorrect additional cycles")
+		})
+	}
+}
+
+func TestMos6502_cpx(t *testing.T) {
+	testCases := []struct {
+		name string
+
+		xValue  byte
+		busData byte
+
+		expectedCflag            uint8
+		expectedZflag            uint8
+		expectedNflag            uint8
+		expectedAdditionalCycles uint8
+	}{
+		{
+			name: "X=M results in Z=true",
+
+			xValue:  0x42,
+			busData: 0x42,
+
+			expectedCflag:            1,
+			expectedNflag:            0,
+			expectedZflag:            1,
+			expectedAdditionalCycles: 0,
+		},
+		{
+			name: "X>=M results in C=true",
+
+			xValue:  0x42,
+			busData: 0x01,
+
+			expectedCflag:            1,
+			expectedNflag:            0,
+			expectedZflag:            0,
+			expectedAdditionalCycles: 0,
+		},
+		{
+			name: "X<=M results in N=true",
+
+			xValue:  0x01,
+			busData: 0x42,
+
+			expectedCflag:            0,
+			expectedNflag:            1,
+			expectedZflag:            0,
+			expectedAdditionalCycles: 0,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			cpu := newTestMos6502()
+			cpu.x = tc.xValue
+			cpu.write(0x0000, tc.busData)
+			additionalCycles := cpu.cpx()
+
+			assert.Equal(t, tc.expectedCflag, cpu.GetStatusFlag(C), "incorrect C flag")
+			assert.Equal(t, tc.expectedZflag, cpu.GetStatusFlag(Z), "incorrect Z flag")
+			assert.Equal(t, tc.expectedNflag, cpu.GetStatusFlag(N), "incorrect N flag")
+			assert.Equal(t, tc.expectedAdditionalCycles, additionalCycles, "incorrect additional cycles")
+		})
+	}
+}
+
+func TestMos6502_cpy(t *testing.T) {
+	testCases := []struct {
+		name string
+
+		yValue  byte
+		busData byte
+
+		expectedCflag            uint8
+		expectedZflag            uint8
+		expectedNflag            uint8
+		expectedAdditionalCycles uint8
+	}{
+		{
+			name: "Y=M results in Z=true",
+
+			yValue:  0x42,
+			busData: 0x42,
+
+			expectedCflag:            1,
+			expectedNflag:            0,
+			expectedZflag:            1,
+			expectedAdditionalCycles: 0,
+		},
+		{
+			name: "Y>=M results in C=true",
+
+			yValue:  0x42,
+			busData: 0x01,
+
+			expectedCflag:            1,
+			expectedNflag:            0,
+			expectedZflag:            0,
+			expectedAdditionalCycles: 0,
+		},
+		{
+			name: "Y<=M results in N=true",
+
+			yValue:  0x01,
+			busData: 0x42,
+
+			expectedCflag:            0,
+			expectedNflag:            1,
+			expectedZflag:            0,
+			expectedAdditionalCycles: 0,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			cpu := newTestMos6502()
+			cpu.y = tc.yValue
+			cpu.write(0x0000, tc.busData)
+			additionalCycles := cpu.cpy()
+
+			assert.Equal(t, tc.expectedCflag, cpu.GetStatusFlag(C), "incorrect C flag")
+			assert.Equal(t, tc.expectedZflag, cpu.GetStatusFlag(Z), "incorrect Z flag")
+			assert.Equal(t, tc.expectedNflag, cpu.GetStatusFlag(N), "incorrect N flag")
+			assert.Equal(t, tc.expectedAdditionalCycles, additionalCycles, "incorrect additional cycles")
 		})
 	}
 }

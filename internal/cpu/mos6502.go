@@ -559,32 +559,58 @@ func (cpu *Mos6502) bvs() uint8 {
 	return 0
 }
 
-// clc is the Clear Carry Flag operation
+// clc is the Clear Carry Flag operation. It sets the Carry flag to false.
 func (cpu *Mos6502) clc() uint8 {
+	cpu.setStatusFlag(C, false)
 	return 0
 }
 
+// cld is the Clear Decimal Flag operation. It sets the Decimal flag to false.
 func (cpu *Mos6502) cld() uint8 {
+	cpu.setStatusFlag(D, false)
 	return 0
 }
 
+// cli is the Clear Interrupt Flag operation. It sets the Interrupt flag to false.
 func (cpu *Mos6502) cli() uint8 {
+	cpu.setStatusFlag(I, false)
 	return 0
 }
 
+// clv is the Clear Overflow Flag operation. It sets the Overflow flag to false.
 func (cpu *Mos6502) clv() uint8 {
+	cpu.setStatusFlag(V, false)
 	return 0
 }
 
+// compare is a convenience method containing the common logic used by the compare
+// operations.
+func (cpu *Mos6502) compare(registerData byte) {
+	cpu.fetch()
+	cpu.temp = word(registerData) - word(cpu.fetchedData)
+	cpu.setStatusFlag(C, registerData >= cpu.fetchedData)
+	cpu.setStatusFlag(Z, (cpu.temp&0x00ff) == 0x0000)
+	cpu.setStatusFlag(N, (cpu.temp&0x0080) > 0)
+}
+
+// cmp is the Compare Accumulator operation. It compares the accumulator to data
+// stored on the Bus, setting the C, N, and Z flags accordingly.
 func (cpu *Mos6502) cmp() uint8 {
-	return 0
+	cpu.compare(cpu.a)
+	return 1
 }
 
+// cpx is the Compare X Register operation. It compares the X Register to data
+// stored on the Bus, setting the C, N, and Z flags accordingly.
 func (cpu *Mos6502) cpx() uint8 {
+	cpu.compare(cpu.x)
 	return 0
 }
 
+// cpy is the Compare Y Register operation. It compares the Y Register to data
+// stored on the Bus, setting the C, N, and Z flags accordingly.
 func (cpu *Mos6502) cpy() uint8 {
+	cpu.compare(cpu.y)
 	return 0
 }
 
