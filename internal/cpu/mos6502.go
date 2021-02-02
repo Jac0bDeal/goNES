@@ -614,15 +614,27 @@ func (cpu *Mos6502) cpy() uint8 {
 	return 0
 }
 
+// dec is the Decrement Value at Memory Location operation.
 func (cpu *Mos6502) dec() uint8 {
+	cpu.fetch()
+	cpu.temp = word(cpu.fetchedData - 1)
+	cpu.write(cpu.addressAbsolute, byte(cpu.temp&0x00ff))
+	cpu.setStatusFlag(Z, (cpu.temp&0x00ff) == 0x0000)
+	cpu.setStatusFlag(N, (cpu.temp&0x0080) > 0)
 	return 0
 }
 
 func (cpu *Mos6502) dex() uint8 {
+	cpu.x--
+	cpu.setStatusFlag(Z, cpu.x == 0x00)
+	cpu.setStatusFlag(N, (cpu.x&0x80) > 0)
 	return 0
 }
 
 func (cpu *Mos6502) dey() uint8 {
+	cpu.y--
+	cpu.setStatusFlag(Z, cpu.y == 0x00)
+	cpu.setStatusFlag(N, (cpu.y&0x80) > 0)
 	return 0
 }
 
