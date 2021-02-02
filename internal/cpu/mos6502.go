@@ -675,11 +675,23 @@ func (cpu *Mos6502) iny() uint8 {
 	return 0
 }
 
+// jmp is the Jump to Location operation.
 func (cpu *Mos6502) jmp() uint8 {
+	cpu.pc = cpu.addressAbsolute
 	return 0
 }
 
+// jsr is the Jump to Sub-Routine operation. Pushes current program counter value
+// to stack.
 func (cpu *Mos6502) jsr() uint8 {
+	cpu.pc--
+
+	cpu.write(0x0100+word(cpu.stkp), byte((cpu.pc>>8)&0x00ff))
+	cpu.stkp--
+	cpu.write(0x0100+word(cpu.stkp), byte(cpu.pc&0x00ff))
+	cpu.stkp--
+
+	cpu.pc = cpu.addressAbsolute
 	return 0
 }
 

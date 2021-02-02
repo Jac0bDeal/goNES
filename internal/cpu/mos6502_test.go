@@ -26,6 +26,30 @@ func newTestMos6502() *Mos6502 {
 	}
 }
 
+// busBuilder is a test utility for creating Bus instances inline
+// test case definitions.
+type busBuilder struct {
+	bus *bus.Bus
+}
+
+// newBusBuilder creates and returns a pointer to a busBuilder instance.
+func newBusBuilder() *busBuilder {
+	return &busBuilder{
+		bus.NewBus(bus.RAM{}),
+	}
+}
+
+// build returns the built Bus instance.
+func (b *busBuilder) build() *bus.Bus {
+	return b.bus
+}
+
+// write assigns the passed data to the given address on the Bus being built.
+func (b *busBuilder) write(address word, data byte) *busBuilder {
+	b.bus.Write(uint16(address), data)
+	return b
+}
+
 func TestMos6502_Clock(t *testing.T) {
 	testCases := []struct {
 		name              string
@@ -251,9 +275,6 @@ func TestMos6502_Clock(t *testing.T) {
 }
 
 func TestMos6502_Reset(t *testing.T) {
-	testRAM := bus.RAM{}
-	testRAM[0xfffc] = 0x20
-	testRAM[0xfffd] = 0x04
 	testCases := []struct {
 		name          string
 		initialState  *Mos6502
@@ -272,7 +293,10 @@ func TestMos6502_Reset(t *testing.T) {
 				addressRelative: 0x1111,
 				fetchedData:     0x11,
 				cycles:          1,
-				bus:             bus.NewBus(testRAM),
+				bus: newBusBuilder().
+					write(0xfffc, 0x20).
+					write(0xfffd, 0x04).
+					build(),
 			},
 			expectedState: &Mos6502{
 				pc:              0x0420,
@@ -285,7 +309,10 @@ func TestMos6502_Reset(t *testing.T) {
 				addressRelative: 0x0000,
 				fetchedData:     0x00,
 				cycles:          8,
-				bus:             bus.NewBus(testRAM),
+				bus: newBusBuilder().
+					write(0xfffc, 0x20).
+					write(0xfffd, 0x04).
+					build(),
 			},
 		},
 	}
@@ -300,17 +327,6 @@ func TestMos6502_Reset(t *testing.T) {
 }
 
 func TestMos6502_InterruptRequest(t *testing.T) {
-	testRAM := bus.RAM{}
-	testRAM[0xfffe] = 0x20
-	testRAM[0xffff] = 0x04
-
-	expectedSuccessRAM := bus.RAM{}
-	expectedSuccessRAM[0x010f] = 0b00100100
-	expectedSuccessRAM[0x0110] = 0x20
-	expectedSuccessRAM[0x0111] = 0x04
-	expectedSuccessRAM[0xfffe] = 0x20
-	expectedSuccessRAM[0xffff] = 0x04
-
 	testCases := []struct {
 		name          string
 		initialState  *Mos6502
@@ -329,7 +345,10 @@ func TestMos6502_InterruptRequest(t *testing.T) {
 				addressRelative: 0x1111,
 				fetchedData:     0x11,
 				cycles:          1,
-				bus:             bus.NewBus(testRAM),
+				bus: newBusBuilder().
+					write(0xfffe, 0x20).
+					write(0xffff, 0x04).
+					build(),
 			},
 			expectedState: &Mos6502{
 				pc:              0x1111,
@@ -342,7 +361,10 @@ func TestMos6502_InterruptRequest(t *testing.T) {
 				addressRelative: 0x1111,
 				fetchedData:     0x11,
 				cycles:          1,
-				bus:             bus.NewBus(testRAM),
+				bus: newBusBuilder().
+					write(0xfffe, 0x20).
+					write(0xffff, 0x04).
+					build(),
 			},
 		},
 		{
@@ -358,7 +380,10 @@ func TestMos6502_InterruptRequest(t *testing.T) {
 				addressRelative: 0x1111,
 				fetchedData:     0x11,
 				cycles:          1,
-				bus:             bus.NewBus(testRAM),
+				bus: newBusBuilder().
+					write(0xfffe, 0x20).
+					write(0xffff, 0x04).
+					build(),
 			},
 			expectedState: &Mos6502{
 				pc:              0x0420,
@@ -371,7 +396,13 @@ func TestMos6502_InterruptRequest(t *testing.T) {
 				addressRelative: 0x1111,
 				fetchedData:     0x11,
 				cycles:          7,
-				bus:             bus.NewBus(expectedSuccessRAM),
+				bus: newBusBuilder().
+					write(0x010f, 0b00100100).
+					write(0x0110, 0x20).
+					write(0x0111, 0x04).
+					write(0xfffe, 0x20).
+					write(0xffff, 0x04).
+					build(),
 			},
 		},
 	}
@@ -386,17 +417,6 @@ func TestMos6502_InterruptRequest(t *testing.T) {
 }
 
 func TestMos6502_NonMaskableInterrupt(t *testing.T) {
-	testRAM := bus.RAM{}
-	testRAM[0xfffa] = 0x20
-	testRAM[0xfffb] = 0x04
-
-	expectedSuccessRAM := bus.RAM{}
-	expectedSuccessRAM[0x010f] = 0b00100100
-	expectedSuccessRAM[0x0110] = 0x20
-	expectedSuccessRAM[0x0111] = 0x04
-	expectedSuccessRAM[0xfffa] = 0x20
-	expectedSuccessRAM[0xfffb] = 0x04
-
 	testCases := []struct {
 		name          string
 		initialState  *Mos6502
@@ -415,7 +435,10 @@ func TestMos6502_NonMaskableInterrupt(t *testing.T) {
 				addressRelative: 0x1111,
 				fetchedData:     0x11,
 				cycles:          1,
-				bus:             bus.NewBus(testRAM),
+				bus: newBusBuilder().
+					write(0xfffa, 0x20).
+					write(0xfffb, 0x04).
+					build(),
 			},
 			expectedState: &Mos6502{
 				pc:              0x0420,
@@ -428,7 +451,13 @@ func TestMos6502_NonMaskableInterrupt(t *testing.T) {
 				addressRelative: 0x1111,
 				fetchedData:     0x11,
 				cycles:          8,
-				bus:             bus.NewBus(expectedSuccessRAM),
+				bus: newBusBuilder().
+					write(0x010f, 0b00100100).
+					write(0x0110, 0x20).
+					write(0x0111, 0x04).
+					write(0xfffa, 0x20).
+					write(0xfffb, 0x04).
+					build(),
 			},
 		},
 	}
@@ -628,12 +657,12 @@ func TestMos6502_zp0(t *testing.T) {
 			name: "absolute address set to start of page 0x00 for byte 0x00",
 			initialState: &Mos6502{
 				pc:              0x0000,
-				bus:             bus.NewBus(bus.RAM{0x00}),
+				bus:             newBusBuilder().write(0x0000, 0x00).build(),
 				addressAbsolute: 0x0000,
 			},
 			expectedState: &Mos6502{
 				pc:              0x0001,
-				bus:             bus.NewBus(bus.RAM{0x00}),
+				bus:             newBusBuilder().write(0x0000, 0x00).build(),
 				addressAbsolute: 0x0000,
 			},
 			expectedAdditionalCycles: 0,
@@ -642,12 +671,12 @@ func TestMos6502_zp0(t *testing.T) {
 			name: "absolute address set to correct location in page 0x00",
 			initialState: &Mos6502{
 				pc:              0x0000,
-				bus:             bus.NewBus(bus.RAM{0x42}),
+				bus:             newBusBuilder().write(0x0000, 0x42).build(),
 				addressAbsolute: 0x0000,
 			},
 			expectedState: &Mos6502{
 				pc:              0x0001,
-				bus:             bus.NewBus(bus.RAM{0x42}),
+				bus:             newBusBuilder().write(0x0000, 0x42).build(),
 				addressAbsolute: 0x0042,
 			},
 			expectedAdditionalCycles: 0,
@@ -656,12 +685,12 @@ func TestMos6502_zp0(t *testing.T) {
 			name: "absolute address set to end of page 0x00 for byte 0xff",
 			initialState: &Mos6502{
 				pc:              0x0000,
-				bus:             bus.NewBus(bus.RAM{0xff}),
+				bus:             newBusBuilder().write(0x0000, 0xff).build(),
 				addressAbsolute: 0x0000,
 			},
 			expectedState: &Mos6502{
 				pc:              0x0001,
-				bus:             bus.NewBus(bus.RAM{0xff}),
+				bus:             newBusBuilder().write(0x0000, 0xff).build(),
 				addressAbsolute: 0x00ff,
 			},
 			expectedAdditionalCycles: 0,
@@ -690,13 +719,13 @@ func TestMos6502_zpx(t *testing.T) {
 			initialState: &Mos6502{
 				pc:              0x0000,
 				x:               0x00,
-				bus:             bus.NewBus(bus.RAM{0x00}),
+				bus:             newBusBuilder().write(0x0000, 0x00).build(),
 				addressAbsolute: 0x0000,
 			},
 			expectedState: &Mos6502{
 				pc:              0x0001,
 				x:               0x00,
-				bus:             bus.NewBus(bus.RAM{0x00}),
+				bus:             newBusBuilder().write(0x0000, 0x00).build(),
 				addressAbsolute: 0x0000,
 			},
 			expectedAdditionalCycles: 0,
@@ -706,13 +735,13 @@ func TestMos6502_zpx(t *testing.T) {
 			initialState: &Mos6502{
 				pc:              0x0000,
 				x:               0x00,
-				bus:             bus.NewBus(bus.RAM{0x42}),
+				bus:             newBusBuilder().write(0x0000, 0x42).build(),
 				addressAbsolute: 0x0000,
 			},
 			expectedState: &Mos6502{
 				pc:              0x0001,
 				x:               0x00,
-				bus:             bus.NewBus(bus.RAM{0x42}),
+				bus:             newBusBuilder().write(0x0000, 0x42).build(),
 				addressAbsolute: 0x0042,
 			},
 			expectedAdditionalCycles: 0,
@@ -722,13 +751,13 @@ func TestMos6502_zpx(t *testing.T) {
 			initialState: &Mos6502{
 				pc:              0x0000,
 				x:               0x00,
-				bus:             bus.NewBus(bus.RAM{0xff}),
+				bus:             newBusBuilder().write(0x0000, 0xff).build(),
 				addressAbsolute: 0x0000,
 			},
 			expectedState: &Mos6502{
 				pc:              0x0001,
 				x:               0x00,
-				bus:             bus.NewBus(bus.RAM{0xff}),
+				bus:             newBusBuilder().write(0x0000, 0xff).build(),
 				addressAbsolute: 0x00ff,
 			},
 			expectedAdditionalCycles: 0,
@@ -738,13 +767,13 @@ func TestMos6502_zpx(t *testing.T) {
 			initialState: &Mos6502{
 				pc:              0x0000,
 				x:               0x01,
-				bus:             bus.NewBus(bus.RAM{0xff}),
+				bus:             newBusBuilder().write(0x0000, 0xff).build(),
 				addressAbsolute: 0x0000,
 			},
 			expectedState: &Mos6502{
 				pc:              0x0001,
 				x:               0x01,
-				bus:             bus.NewBus(bus.RAM{0xff}),
+				bus:             newBusBuilder().write(0x0000, 0xff).build(),
 				addressAbsolute: 0x0000,
 			},
 			expectedAdditionalCycles: 0,
@@ -754,13 +783,13 @@ func TestMos6502_zpx(t *testing.T) {
 			initialState: &Mos6502{
 				pc:              0x0000,
 				x:               0x01,
-				bus:             bus.NewBus(bus.RAM{0x42}),
+				bus:             newBusBuilder().write(0x0000, 0x42).build(),
 				addressAbsolute: 0x0000,
 			},
 			expectedState: &Mos6502{
 				pc:              0x0001,
 				x:               0x01,
-				bus:             bus.NewBus(bus.RAM{0x42}),
+				bus:             newBusBuilder().write(0x0000, 0x42).build(),
 				addressAbsolute: 0x0043,
 			},
 			expectedAdditionalCycles: 0,
@@ -770,13 +799,13 @@ func TestMos6502_zpx(t *testing.T) {
 			initialState: &Mos6502{
 				pc:              0x0000,
 				x:               0xff,
-				bus:             bus.NewBus(bus.RAM{0xff}),
+				bus:             newBusBuilder().write(0x0000, 0xff).build(),
 				addressAbsolute: 0x0000,
 			},
 			expectedState: &Mos6502{
 				pc:              0x0001,
 				x:               0xff,
-				bus:             bus.NewBus(bus.RAM{0xff}),
+				bus:             newBusBuilder().write(0x0000, 0xff).build(),
 				addressAbsolute: 0x00fe,
 			},
 			expectedAdditionalCycles: 0,
@@ -805,13 +834,13 @@ func TestMos6502_zpy(t *testing.T) {
 			initialState: &Mos6502{
 				pc:              0x0000,
 				y:               0x00,
-				bus:             bus.NewBus(bus.RAM{0x00}),
+				bus:             newBusBuilder().write(0x0000, 0x00).build(),
 				addressAbsolute: 0x0000,
 			},
 			expectedState: &Mos6502{
 				pc:              0x0001,
 				y:               0x00,
-				bus:             bus.NewBus(bus.RAM{0x00}),
+				bus:             newBusBuilder().write(0x0000, 0x00).build(),
 				addressAbsolute: 0x0000,
 			},
 			expectedAdditionalCycles: 0,
@@ -821,13 +850,13 @@ func TestMos6502_zpy(t *testing.T) {
 			initialState: &Mos6502{
 				pc:              0x0000,
 				y:               0x00,
-				bus:             bus.NewBus(bus.RAM{0x42}),
+				bus:             newBusBuilder().write(0x0000, 0x42).build(),
 				addressAbsolute: 0x0000,
 			},
 			expectedState: &Mos6502{
 				pc:              0x0001,
 				y:               0x00,
-				bus:             bus.NewBus(bus.RAM{0x42}),
+				bus:             newBusBuilder().write(0x0000, 0x42).build(),
 				addressAbsolute: 0x0042,
 			},
 			expectedAdditionalCycles: 0,
@@ -837,13 +866,13 @@ func TestMos6502_zpy(t *testing.T) {
 			initialState: &Mos6502{
 				pc:              0x0000,
 				y:               0x00,
-				bus:             bus.NewBus(bus.RAM{0xff}),
+				bus:             newBusBuilder().write(0x0000, 0xff).build(),
 				addressAbsolute: 0x0000,
 			},
 			expectedState: &Mos6502{
 				pc:              0x0001,
 				y:               0x00,
-				bus:             bus.NewBus(bus.RAM{0xff}),
+				bus:             newBusBuilder().write(0x0000, 0xff).build(),
 				addressAbsolute: 0x00ff,
 			},
 			expectedAdditionalCycles: 0,
@@ -853,13 +882,13 @@ func TestMos6502_zpy(t *testing.T) {
 			initialState: &Mos6502{
 				pc:              0x0000,
 				y:               0x01,
-				bus:             bus.NewBus(bus.RAM{0xff}),
+				bus:             newBusBuilder().write(0x0000, 0xff).build(),
 				addressAbsolute: 0x0000,
 			},
 			expectedState: &Mos6502{
 				pc:              0x0001,
 				y:               0x01,
-				bus:             bus.NewBus(bus.RAM{0xff}),
+				bus:             newBusBuilder().write(0x0000, 0xff).build(),
 				addressAbsolute: 0x0000,
 			},
 			expectedAdditionalCycles: 0,
@@ -869,13 +898,13 @@ func TestMos6502_zpy(t *testing.T) {
 			initialState: &Mos6502{
 				pc:              0x0000,
 				y:               0x01,
-				bus:             bus.NewBus(bus.RAM{0x42}),
+				bus:             newBusBuilder().write(0x0000, 0x42).build(),
 				addressAbsolute: 0x0000,
 			},
 			expectedState: &Mos6502{
 				pc:              0x0001,
 				y:               0x01,
-				bus:             bus.NewBus(bus.RAM{0x42}),
+				bus:             newBusBuilder().write(0x0000, 0x42).build(),
 				addressAbsolute: 0x0043,
 			},
 			expectedAdditionalCycles: 0,
@@ -885,13 +914,13 @@ func TestMos6502_zpy(t *testing.T) {
 			initialState: &Mos6502{
 				pc:              0x0000,
 				y:               0xff,
-				bus:             bus.NewBus(bus.RAM{0xff}),
+				bus:             newBusBuilder().write(0x0000, 0xff).build(),
 				addressAbsolute: 0x0000,
 			},
 			expectedState: &Mos6502{
 				pc:              0x0001,
 				y:               0xff,
-				bus:             bus.NewBus(bus.RAM{0xff}),
+				bus:             newBusBuilder().write(0x0000, 0xff).build(),
 				addressAbsolute: 0x00fe,
 			},
 			expectedAdditionalCycles: 0,
@@ -919,12 +948,12 @@ func TestMos6502_rel(t *testing.T) {
 			name: "relative address at top of branch range is set correctly",
 			initialState: &Mos6502{
 				pc:              0x0000,
-				bus:             bus.NewBus(bus.RAM{0x79}),
+				bus:             newBusBuilder().write(0x0000, 0x79).build(),
 				addressRelative: 0x0000,
 			},
 			expectedState: &Mos6502{
 				pc:              0x0001,
-				bus:             bus.NewBus(bus.RAM{0x79}),
+				bus:             newBusBuilder().write(0x0000, 0x79).build(),
 				addressRelative: 0x0079,
 			},
 			expectedAdditionalCycles: 0,
@@ -933,12 +962,12 @@ func TestMos6502_rel(t *testing.T) {
 			name: "relative address within branch range is set correctly",
 			initialState: &Mos6502{
 				pc:              0x0000,
-				bus:             bus.NewBus(bus.RAM{0x00}),
+				bus:             newBusBuilder().write(0x0000, 0x00).build(),
 				addressRelative: 0x0000,
 			},
 			expectedState: &Mos6502{
 				pc:              0x0001,
-				bus:             bus.NewBus(bus.RAM{0x00}),
+				bus:             newBusBuilder().write(0x0000, 0x00).build(),
 				addressRelative: 0x0000,
 			},
 			expectedAdditionalCycles: 0,
@@ -947,12 +976,12 @@ func TestMos6502_rel(t *testing.T) {
 			name: "relative address at bottom of branch range is set correctly",
 			initialState: &Mos6502{
 				pc:              0x0000,
-				bus:             bus.NewBus(bus.RAM{0x80}),
+				bus:             newBusBuilder().write(0x0000, 0x80).build(),
 				addressRelative: 0x0000,
 			},
 			expectedState: &Mos6502{
 				pc:              0x0001,
-				bus:             bus.NewBus(bus.RAM{0x80}),
+				bus:             newBusBuilder().write(0x0000, 0x80).build(),
 				addressRelative: 0xff80,
 			},
 			expectedAdditionalCycles: 0,
@@ -979,13 +1008,19 @@ func TestMos6502_abs(t *testing.T) {
 		{
 			name: "absolute address read correctly",
 			initialState: &Mos6502{
-				pc:              0x0000,
-				bus:             bus.NewBus(bus.RAM{0x20, 0x04}),
+				pc: 0x0000,
+				bus: newBusBuilder().
+					write(0x0000, 0x20).
+					write(0x0001, 0x04).
+					build(),
 				addressAbsolute: 0x0000,
 			},
 			expectedState: &Mos6502{
-				pc:              0x0002,
-				bus:             bus.NewBus(bus.RAM{0x20, 0x04}),
+				pc: 0x0002,
+				bus: newBusBuilder().
+					write(0x0000, 0x20).
+					write(0x0001, 0x04).
+					build(),
 				addressAbsolute: 0x0420,
 			},
 			expectedAdditionalCycles: 0,
@@ -1012,15 +1047,21 @@ func TestMos6502_abx(t *testing.T) {
 		{
 			name: "x equals zero",
 			initialState: &Mos6502{
-				pc:              0x0000,
-				x:               0x00,
-				bus:             bus.NewBus(bus.RAM{0x20, 0x04}),
+				pc: 0x0000,
+				x:  0x00,
+				bus: newBusBuilder().
+					write(0x0000, 0x20).
+					write(0x0001, 0x04).
+					build(),
 				addressAbsolute: 0x0000,
 			},
 			expectedState: &Mos6502{
-				pc:              0x0002,
-				x:               0x00,
-				bus:             bus.NewBus(bus.RAM{0x20, 0x04}),
+				pc: 0x0002,
+				x:  0x00,
+				bus: newBusBuilder().
+					write(0x0000, 0x20).
+					write(0x0001, 0x04).
+					build(),
 				addressAbsolute: 0x0420,
 			},
 			expectedAdditionalCycles: 0,
@@ -1028,15 +1069,21 @@ func TestMos6502_abx(t *testing.T) {
 		{
 			name: "non-zero x and no page change",
 			initialState: &Mos6502{
-				pc:              0x0000,
-				x:               0x10,
-				bus:             bus.NewBus(bus.RAM{0x20, 0x04}),
+				pc: 0x0000,
+				x:  0x10,
+				bus: newBusBuilder().
+					write(0x0000, 0x20).
+					write(0x0001, 0x04).
+					build(),
 				addressAbsolute: 0x0000,
 			},
 			expectedState: &Mos6502{
-				pc:              0x02,
-				x:               0x0010,
-				bus:             bus.NewBus(bus.RAM{0x20, 0x04}),
+				pc: 0x02,
+				x:  0x0010,
+				bus: newBusBuilder().
+					write(0x0000, 0x20).
+					write(0x0001, 0x04).
+					build(),
 				addressAbsolute: 0x0430,
 			},
 			expectedAdditionalCycles: 0,
@@ -1044,15 +1091,21 @@ func TestMos6502_abx(t *testing.T) {
 		{
 			name: "x value causing page change",
 			initialState: &Mos6502{
-				pc:              0x0000,
-				x:               0x42,
-				bus:             bus.NewBus(bus.RAM{0xde, 0x03}),
+				pc: 0x0000,
+				x:  0x42,
+				bus: newBusBuilder().
+					write(0x0000, 0xde).
+					write(0x0001, 0x03).
+					build(),
 				addressAbsolute: 0x0000,
 			},
 			expectedState: &Mos6502{
-				pc:              0x0002,
-				x:               0x42,
-				bus:             bus.NewBus(bus.RAM{0xde, 0x03}),
+				pc: 0x0002,
+				x:  0x42,
+				bus: newBusBuilder().
+					write(0x0000, 0xde).
+					write(0x0001, 0x03).
+					build(),
 				addressAbsolute: 0x0420,
 			},
 			expectedAdditionalCycles: 1,
@@ -1079,15 +1132,21 @@ func TestMos6502_aby(t *testing.T) {
 		{
 			name: "y equals zero",
 			initialState: &Mos6502{
-				pc:              0x0000,
-				y:               0x00,
-				bus:             bus.NewBus(bus.RAM{0x20, 0x04}),
+				pc: 0x0000,
+				y:  0x00,
+				bus: newBusBuilder().
+					write(0x0000, 0x20).
+					write(0x0001, 0x04).
+					build(),
 				addressAbsolute: 0x0000,
 			},
 			expectedState: &Mos6502{
-				pc:              0x0002,
-				y:               0x00,
-				bus:             bus.NewBus(bus.RAM{0x20, 0x04}),
+				pc: 0x0002,
+				y:  0x00,
+				bus: newBusBuilder().
+					write(0x0000, 0x20).
+					write(0x0001, 0x04).
+					build(),
 				addressAbsolute: 0x0420,
 			},
 			expectedAdditionalCycles: 0,
@@ -1095,15 +1154,21 @@ func TestMos6502_aby(t *testing.T) {
 		{
 			name: "non-zero y and no page change",
 			initialState: &Mos6502{
-				pc:              0x0000,
-				y:               0x10,
-				bus:             bus.NewBus(bus.RAM{0x20, 0x04}),
+				pc: 0x0000,
+				y:  0x10,
+				bus: newBusBuilder().
+					write(0x0000, 0x20).
+					write(0x0001, 0x04).
+					build(),
 				addressAbsolute: 0x0000,
 			},
 			expectedState: &Mos6502{
-				pc:              0x02,
-				y:               0x0010,
-				bus:             bus.NewBus(bus.RAM{0x20, 0x04}),
+				pc: 0x02,
+				y:  0x0010,
+				bus: newBusBuilder().
+					write(0x0000, 0x20).
+					write(0x0001, 0x04).
+					build(),
 				addressAbsolute: 0x0430,
 			},
 			expectedAdditionalCycles: 0,
@@ -1111,15 +1176,21 @@ func TestMos6502_aby(t *testing.T) {
 		{
 			name: "y value causing page change",
 			initialState: &Mos6502{
-				pc:              0x0000,
-				y:               0x42,
-				bus:             bus.NewBus(bus.RAM{0xde, 0x03}),
+				pc: 0x0000,
+				y:  0x42,
+				bus: newBusBuilder().
+					write(0x0000, 0xde).
+					write(0x0001, 0x03).
+					build(),
 				addressAbsolute: 0x0000,
 			},
 			expectedState: &Mos6502{
-				pc:              0x0002,
-				y:               0x42,
-				bus:             bus.NewBus(bus.RAM{0xde, 0x03}),
+				pc: 0x0002,
+				y:  0x42,
+				bus: newBusBuilder().
+					write(0x0000, 0xde).
+					write(0x0001, 0x03).
+					build(),
 				addressAbsolute: 0x0420,
 			},
 			expectedAdditionalCycles: 1,
@@ -1137,10 +1208,6 @@ func TestMos6502_aby(t *testing.T) {
 }
 
 func TestMos6502_ind(t *testing.T) {
-	bugRAM := bus.RAM{0xff, 0x00}
-	bugRAM[0x00ff] = 0x04
-	bugRAM[0x0100] = 0x20
-
 	testCases := []struct {
 		name                     string
 		initialState             *Mos6502
@@ -1150,13 +1217,23 @@ func TestMos6502_ind(t *testing.T) {
 		{
 			name: "reads indirect address correctly with no page change",
 			initialState: &Mos6502{
-				pc:              0x0000,
-				bus:             bus.NewBus(bus.RAM{0x02, 0x00, 0x20, 0x4}),
+				pc: 0x0000,
+				bus: newBusBuilder().
+					write(0x0000, 0x02).
+					write(0x0001, 0x00).
+					write(0x0002, 0x20).
+					write(0x0003, 0x04).
+					build(),
 				addressAbsolute: 0x0000,
 			},
 			expectedState: &Mos6502{
-				pc:              0x0002,
-				bus:             bus.NewBus(bus.RAM{0x02, 0x00, 0x20, 0x4}),
+				pc: 0x0002,
+				bus: newBusBuilder().
+					write(0x0000, 0x02).
+					write(0x0001, 0x00).
+					write(0x0002, 0x20).
+					write(0x0003, 0x04).
+					build(),
 				addressAbsolute: 0x0420,
 			},
 			expectedAdditionalCycles: 0,
@@ -1164,13 +1241,23 @@ func TestMos6502_ind(t *testing.T) {
 		{
 			name: "replicates page change bug wrapping around to start of page",
 			initialState: &Mos6502{
-				pc:              0x0000,
-				bus:             bus.NewBus(bugRAM),
+				pc: 0x0000,
+				bus: newBusBuilder().
+					write(0x0000, 0xff).
+					write(0x0001, 0x00).
+					write(0x00ff, 0x04).
+					write(0x0100, 0x20).
+					build(),
 				addressAbsolute: 0x0000,
 			},
 			expectedState: &Mos6502{
-				pc:              0x0002,
-				bus:             bus.NewBus(bugRAM),
+				pc: 0x0002,
+				bus: newBusBuilder().
+					write(0x0000, 0xff).
+					write(0x0001, 0x00).
+					write(0x00ff, 0x04).
+					write(0x0100, 0x20).
+					build(),
 				addressAbsolute: 0xff04,
 			},
 			expectedAdditionalCycles: 0,
@@ -1188,10 +1275,6 @@ func TestMos6502_ind(t *testing.T) {
 }
 
 func TestMos6502_izx(t *testing.T) {
-	largeXram := bus.RAM{0x01}
-	largeXram[0x00ff] = 0x20
-	largeXram[0x0100] = 0x04
-
 	testCases := []struct {
 		name                     string
 		initialState             *Mos6502
@@ -1201,15 +1284,27 @@ func TestMos6502_izx(t *testing.T) {
 		{
 			name: "indirect assignment of page 0 address when x equals 0",
 			initialState: &Mos6502{
-				pc:              0x0000,
-				x:               0x00,
-				bus:             bus.NewBus(bus.RAM{0x01, 0xff, 0xff, 0x20, 0x04}),
+				pc: 0x0000,
+				x:  0x00,
+				bus: newBusBuilder().
+					write(0x0000, 0x01).
+					write(0x0001, 0xff).
+					write(0x0002, 0xff).
+					write(0x0003, 0x20).
+					write(0x0004, 0x04).
+					build(),
 				addressAbsolute: 0x0000,
 			},
 			expectedState: &Mos6502{
-				pc:              0x0001,
-				x:               0x00,
-				bus:             bus.NewBus(bus.RAM{0x01, 0xff, 0xff, 0x20, 0x04}),
+				pc: 0x0001,
+				x:  0x00,
+				bus: newBusBuilder().
+					write(0x0000, 0x01).
+					write(0x0001, 0xff).
+					write(0x0002, 0xff).
+					write(0x0003, 0x20).
+					write(0x0004, 0x04).
+					build(),
 				addressAbsolute: 0xffff,
 			},
 			expectedAdditionalCycles: 0,
@@ -1217,15 +1312,27 @@ func TestMos6502_izx(t *testing.T) {
 		{
 			name: "indirect assignment of page 0x00 is offset by x index value",
 			initialState: &Mos6502{
-				pc:              0x0000,
-				x:               0x02,
-				bus:             bus.NewBus(bus.RAM{0x01, 0xff, 0xff, 0x20, 0x04}),
+				pc: 0x0000,
+				x:  0x02,
+				bus: newBusBuilder().
+					write(0x0000, 0x01).
+					write(0x0001, 0xff).
+					write(0x0002, 0xff).
+					write(0x0003, 0x20).
+					write(0x0004, 0x04).
+					build(),
 				addressAbsolute: 0x0000,
 			},
 			expectedState: &Mos6502{
-				pc:              0x0001,
-				x:               0x02,
-				bus:             bus.NewBus(bus.RAM{0x01, 0xff, 0xff, 0x20, 0x04}),
+				pc: 0x0001,
+				x:  0x02,
+				bus: newBusBuilder().
+					write(0x0000, 0x01).
+					write(0x0001, 0xff).
+					write(0x0002, 0xff).
+					write(0x0003, 0x20).
+					write(0x0004, 0x04).
+					build(),
 				addressAbsolute: 0x0420,
 			},
 			expectedAdditionalCycles: 0,
@@ -1233,15 +1340,23 @@ func TestMos6502_izx(t *testing.T) {
 		{
 			name: "indirect assignment of page 0x00 is offset by large x index value",
 			initialState: &Mos6502{
-				pc:              0x0000,
-				x:               0xfe,
-				bus:             bus.NewBus(largeXram),
+				pc: 0x0000,
+				x:  0xfe,
+				bus: newBusBuilder().
+					write(0x0000, 0x01).
+					write(0x00ff, 0x20).
+					write(0x0100, 0x04).
+					build(),
 				addressAbsolute: 0x0000,
 			},
 			expectedState: &Mos6502{
-				pc:              0x0001,
-				x:               0xfe,
-				bus:             bus.NewBus(largeXram),
+				pc: 0x0001,
+				x:  0xfe,
+				bus: newBusBuilder().
+					write(0x0000, 0x01).
+					write(0x00ff, 0x20).
+					write(0x0100, 0x04).
+					build(),
 				addressAbsolute: 0x0120,
 			},
 			expectedAdditionalCycles: 0,
@@ -1268,15 +1383,27 @@ func TestMos6502_izy(t *testing.T) {
 		{
 			name: "indirect assignment of page 0x00 address when y equals 0",
 			initialState: &Mos6502{
-				pc:              0x0000,
-				y:               0x00,
-				bus:             bus.NewBus(bus.RAM{0x03, 0x01, 0x00, 0x20, 0x04}),
+				pc: 0x0000,
+				y:  0x00,
+				bus: newBusBuilder().
+					write(0x0000, 0x03).
+					write(0x0001, 0x01).
+					write(0x0002, 0x00).
+					write(0x0003, 0x20).
+					write(0x0004, 0x04).
+					build(),
 				addressAbsolute: 0x0000,
 			},
 			expectedState: &Mos6502{
-				pc:              0x0001,
-				y:               0x00,
-				bus:             bus.NewBus(bus.RAM{0x03, 0x01, 0x00, 0x20, 0x04}),
+				pc: 0x0001,
+				y:  0x00,
+				bus: newBusBuilder().
+					write(0x0000, 0x03).
+					write(0x0001, 0x01).
+					write(0x0002, 0x00).
+					write(0x0003, 0x20).
+					write(0x0004, 0x04).
+					build(),
 				addressAbsolute: 0x0420,
 			},
 			expectedAdditionalCycles: 0,
@@ -1284,15 +1411,27 @@ func TestMos6502_izy(t *testing.T) {
 		{
 			name: "indirect assignment of page 0x00 address when y equals 0",
 			initialState: &Mos6502{
-				pc:              0x0000,
-				y:               0x00,
-				bus:             bus.NewBus(bus.RAM{0x03, 0x01, 0x00, 0x20, 0x04}),
+				pc: 0x0000,
+				y:  0x00,
+				bus: newBusBuilder().
+					write(0x0000, 0x03).
+					write(0x0001, 0x01).
+					write(0x0002, 0x00).
+					write(0x0003, 0x20).
+					write(0x0004, 0x04).
+					build(),
 				addressAbsolute: 0x0000,
 			},
 			expectedState: &Mos6502{
-				pc:              0x0001,
-				y:               0x00,
-				bus:             bus.NewBus(bus.RAM{0x03, 0x01, 0x00, 0x20, 0x04}),
+				pc: 0x0001,
+				y:  0x00,
+				bus: newBusBuilder().
+					write(0x0000, 0x03).
+					write(0x0001, 0x01).
+					write(0x0002, 0x00).
+					write(0x0003, 0x20).
+					write(0x0004, 0x04).
+					build(),
 				addressAbsolute: 0x0420,
 			},
 			expectedAdditionalCycles: 0,
@@ -1300,15 +1439,27 @@ func TestMos6502_izy(t *testing.T) {
 		{
 			name: "indirect assignment of y shifted address with page change",
 			initialState: &Mos6502{
-				pc:              0x0000,
-				y:               0xff,
-				bus:             bus.NewBus(bus.RAM{0x03, 0x01, 0x00, 0x10, 0x00}),
+				pc: 0x0000,
+				y:  0xff,
+				bus: newBusBuilder().
+					write(0x0000, 0x03).
+					write(0x0001, 0x01).
+					write(0x0002, 0x00).
+					write(0x0003, 0x10).
+					write(0x0004, 0x00).
+					build(),
 				addressAbsolute: 0x0000,
 			},
 			expectedState: &Mos6502{
-				pc:              0x0001,
-				y:               0xff,
-				bus:             bus.NewBus(bus.RAM{0x03, 0x01, 0x00, 0x10, 0x00}),
+				pc: 0x0001,
+				y:  0xff,
+				bus: newBusBuilder().
+					write(0x0000, 0x03).
+					write(0x0001, 0x01).
+					write(0x0002, 0x00).
+					write(0x0003, 0x10).
+					write(0x0004, 0x00).
+					build(),
 				addressAbsolute: 0x010f,
 			},
 			expectedAdditionalCycles: 1,
@@ -2332,17 +2483,6 @@ func TestMos6502_bpl(t *testing.T) {
 }
 
 func TestMos6502_brk(t *testing.T) {
-	initialBus := bus.NewBus(bus.RAM{})
-	initialBus.Write(0xfffe, 0x20)
-	initialBus.Write(0xffff, 0x04)
-
-	expectedBus := bus.NewBus(bus.RAM{})
-	expectedBus.Write(0xfffe, 0x20)
-	expectedBus.Write(0xffff, 0x04)
-	expectedBus.Write(0x0140, 0b11111111)
-	expectedBus.Write(0x0141, 0xff)
-	expectedBus.Write(0x0142, 0x11)
-
 	testCases := []struct {
 		name                     string
 		initialState             *Mos6502
@@ -2355,13 +2495,22 @@ func TestMos6502_brk(t *testing.T) {
 				pc:     0x11fe,
 				stkp:   0x42,
 				status: 0b11101011,
-				bus:    initialBus,
+				bus: newBusBuilder().
+					write(0xfffe, 0x20).
+					write(0xffff, 0x04).
+					build(),
 			},
 			expectedState: &Mos6502{
 				pc:     0x0420,
 				status: 0b11101111,
 				stkp:   0x3f,
-				bus:    expectedBus,
+				bus: newBusBuilder().
+					write(0x0140, 0b11111111).
+					write(0x0141, 0xff).
+					write(0x0142, 0x11).
+					write(0xfffe, 0x20).
+					write(0xffff, 0x04).
+					build(),
 			},
 			expectedAdditionalCycles: 0,
 		},
@@ -3275,6 +3424,76 @@ func TestMos6502_iny(t *testing.T) {
 			assert.Equal(t, tc.expectedYvalue, cpu.y, "incorrect Y value")
 			assert.Equal(t, tc.expectedZflag, cpu.GetStatusFlag(Z), "incorrect Z flag")
 			assert.Equal(t, tc.expectedNflag, cpu.GetStatusFlag(N), "incorrect N flag")
+			assert.Equal(t, tc.expectedAdditionalCycles, additionalCycles, "incorrect additional cycles")
+		})
+	}
+}
+
+func TestMos6502_jmp(t *testing.T) {
+	testCases := []struct {
+		name string
+
+		address word
+
+		expectedPC               word
+		expectedAdditionalCycles uint8
+	}{
+		{
+			name: "program counter assigned correct address",
+
+			address: 0x0420,
+
+			expectedPC:               0x0420,
+			expectedAdditionalCycles: 0,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			cpu := newTestMos6502()
+			cpu.addressAbsolute = tc.address
+			additionalCycles := cpu.jmp()
+
+			assert.Equal(t, tc.expectedPC, cpu.pc, "incorrect PC value")
+			assert.Equal(t, tc.expectedAdditionalCycles, additionalCycles, "incorrect additional cycles")
+		})
+	}
+}
+
+func TestMos6502_jsr(t *testing.T) {
+	testCases := []struct {
+		name                     string
+		initialState             *Mos6502
+		expectedState            *Mos6502
+		expectedAdditionalCycles uint8
+	}{
+		{
+			name: "program counter written to stack and then assigned with correct address",
+			initialState: &Mos6502{
+				pc:              0x1200,
+				stkp:            0x42,
+				addressAbsolute: 0x0420,
+				bus:             newBusBuilder().build(),
+			},
+			expectedState: &Mos6502{
+				pc:              0x0420,
+				stkp:            0x40,
+				addressAbsolute: 0x0420,
+				bus: newBusBuilder().
+					write(0x0141, 0xff).
+					write(0x0142, 0x11).
+					build(),
+			},
+			expectedAdditionalCycles: 0,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			cpu := tc.initialState
+			additionalCycles := cpu.jsr()
+
+			assert.Equal(t, tc.expectedState, cpu)
 			assert.Equal(t, tc.expectedAdditionalCycles, additionalCycles, "incorrect additional cycles")
 		})
 	}
