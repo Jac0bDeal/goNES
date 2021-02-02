@@ -450,17 +450,22 @@ func (cpu *Mos6502) asl() uint8 {
 	return 0
 }
 
+// branch is a convenience method containing the common branching logic.
+func (cpu *Mos6502) branch() {
+	cpu.cycles++
+	cpu.addressAbsolute = cpu.pc + cpu.addressRelative
+
+	if (cpu.addressAbsolute & 0xff00) != (cpu.pc & 0xff00) {
+		cpu.cycles++
+	}
+	cpu.pc = cpu.addressAbsolute
+}
+
 // bcc is the Branch if Carry Clear operation. If a page change occurs as a
 // result, an extra cycle is required.
 func (cpu *Mos6502) bcc() uint8 {
 	if cpu.GetStatusFlag(C) == 0 {
-		cpu.cycles++
-		cpu.addressAbsolute = cpu.pc + cpu.addressRelative
-
-		if (cpu.addressAbsolute & 0xff00) != (cpu.pc & 0xff00) {
-			cpu.cycles++
-		}
-		cpu.pc = cpu.addressAbsolute
+		cpu.branch()
 	}
 	return 0
 }
@@ -469,13 +474,7 @@ func (cpu *Mos6502) bcc() uint8 {
 // an extra cycle is required.
 func (cpu *Mos6502) bcs() uint8 {
 	if cpu.GetStatusFlag(C) == 1 {
-		cpu.cycles++
-		cpu.addressAbsolute = cpu.pc + cpu.addressRelative
-
-		if (cpu.addressAbsolute & 0xff00) != (cpu.pc & 0xff00) {
-			cpu.cycles++
-		}
-		cpu.pc = cpu.addressAbsolute
+		cpu.branch()
 	}
 	return 0
 }
@@ -484,13 +483,7 @@ func (cpu *Mos6502) bcs() uint8 {
 // Adds additional cycle if page change occurs as result.
 func (cpu *Mos6502) beq() uint8 {
 	if cpu.GetStatusFlag(Z) == 1 {
-		cpu.cycles++
-		cpu.addressAbsolute = cpu.pc + cpu.addressRelative
-
-		if (cpu.addressAbsolute & 0xff00) != (cpu.pc & 0xff00) {
-			cpu.cycles++
-		}
-		cpu.pc = cpu.addressAbsolute
+		cpu.branch()
 	}
 	return 0
 }
@@ -508,13 +501,7 @@ func (cpu *Mos6502) bit() uint8 {
 // Adds additional cycle if page change occurs as result.
 func (cpu *Mos6502) bmi() uint8 {
 	if cpu.GetStatusFlag(N) == 1 {
-		cpu.cycles++
-		cpu.addressAbsolute = cpu.pc + cpu.addressRelative
-
-		if (cpu.addressAbsolute & 0xff00) != (cpu.pc & 0xff00) {
-			cpu.cycles++
-		}
-		cpu.pc = cpu.addressAbsolute
+		cpu.branch()
 	}
 	return 0
 }
@@ -523,13 +510,7 @@ func (cpu *Mos6502) bmi() uint8 {
 // Adds additional cycle if page change occurs as result.
 func (cpu *Mos6502) bne() uint8 {
 	if cpu.GetStatusFlag(Z) == 0 {
-		cpu.cycles++
-		cpu.addressAbsolute = cpu.pc + cpu.addressRelative
-
-		if (cpu.addressAbsolute & 0xff00) != (cpu.pc & 0xff00) {
-			cpu.cycles++
-		}
-		cpu.pc = cpu.addressAbsolute
+		cpu.branch()
 	}
 	return 0
 }
@@ -538,13 +519,7 @@ func (cpu *Mos6502) bne() uint8 {
 // Adds additional cycle if page change occurs as result.
 func (cpu *Mos6502) bpl() uint8 {
 	if cpu.GetStatusFlag(N) == 0 {
-		cpu.cycles++
-		cpu.addressAbsolute = cpu.pc + cpu.addressRelative
-
-		if (cpu.addressAbsolute & 0xff00) != (cpu.pc & 0xff00) {
-			cpu.cycles++
-		}
-		cpu.pc = cpu.addressAbsolute
+		cpu.branch()
 	}
 	return 0
 }
@@ -572,30 +547,19 @@ func (cpu *Mos6502) brk() uint8 {
 // Adds additional cycle if page change occurs as result.
 func (cpu *Mos6502) bvc() uint8 {
 	if cpu.GetStatusFlag(V) == 0 {
-		cpu.cycles++
-		cpu.addressAbsolute = cpu.pc + cpu.addressRelative
-
-		if (cpu.addressAbsolute & 0xff00) != (cpu.pc & 0xff00) {
-			cpu.cycles++
-		}
-		cpu.pc = cpu.addressAbsolute
+		cpu.branch()
 	}
 	return 0
 }
 
 func (cpu *Mos6502) bvs() uint8 {
 	if cpu.GetStatusFlag(V) == 1 {
-		cpu.cycles++
-		cpu.addressAbsolute = cpu.pc + cpu.addressRelative
-
-		if (cpu.addressAbsolute & 0xff00) != (cpu.pc & 0xff00) {
-			cpu.cycles++
-		}
-		cpu.pc = cpu.addressAbsolute
+		cpu.branch()
 	}
 	return 0
 }
 
+// clc is the Clear Carry Flag operation
 func (cpu *Mos6502) clc() uint8 {
 	return 0
 }
