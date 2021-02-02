@@ -639,9 +639,14 @@ func (cpu *Mos6502) dey() uint8 {
 }
 
 func (cpu *Mos6502) eor() uint8 {
+	cpu.fetch()
+	cpu.a = cpu.a ^ cpu.fetchedData
+	cpu.setStatusFlag(Z, cpu.a == 0x00)
+	cpu.setStatusFlag(N, (cpu.a&0x80) > 0)
 	return 0
 }
 
+//
 func (cpu *Mos6502) inc() uint8 {
 	return 0
 }

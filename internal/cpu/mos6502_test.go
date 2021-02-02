@@ -3037,6 +3037,73 @@ func TestMos6502_dey(t *testing.T) {
 	}
 }
 
+func TestMos6502_eor(t *testing.T) {
+	testCases := []struct {
+		name string
+
+		address       word
+		dataValue     byte
+		initialAvalue byte
+
+		expectedAvalue           byte
+		expectedZflag            uint8
+		expectedNflag            uint8
+		expectedAdditionalCycles uint8
+	}{
+		{
+			name: "result is positive",
+
+			address:       0x0420,
+			dataValue:     0b01010101,
+			initialAvalue: 0b00101011,
+
+			expectedAvalue:           0b01111110,
+			expectedNflag:            0,
+			expectedZflag:            0,
+			expectedAdditionalCycles: 0,
+		},
+		{
+			name: "result is zero sets Z=true",
+
+			address:       0x0420,
+			dataValue:     0b01010101,
+			initialAvalue: 0b01010101,
+
+			expectedAvalue:           0b00000000,
+			expectedNflag:            0,
+			expectedZflag:            1,
+			expectedAdditionalCycles: 0,
+		},
+		{
+			name: "result is negative sets N=true",
+
+			address:       0x0420,
+			dataValue:     0b11010101,
+			initialAvalue: 0b00101010,
+
+			expectedAvalue:           0b11111111,
+			expectedNflag:            1,
+			expectedZflag:            0,
+			expectedAdditionalCycles: 0,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			cpu := newTestMos6502()
+			cpu.a = tc.initialAvalue
+			cpu.addressAbsolute = tc.address
+			cpu.write(cpu.addressAbsolute, tc.dataValue)
+			additionalCycles := cpu.eor()
+
+			assert.Equal(t, tc.expectedAvalue, cpu.a, "incorrect A value")
+			assert.Equal(t, tc.expectedZflag, cpu.GetStatusFlag(Z), "incorrect Z flag")
+			assert.Equal(t, tc.expectedNflag, cpu.GetStatusFlag(N), "incorrect N flag")
+			assert.Equal(t, tc.expectedAdditionalCycles, additionalCycles, "incorrect additional cycles")
+		})
+	}
+}
+
 func TestMos6502_sbc(t *testing.T) {
 	testCases := []struct {
 		name string
