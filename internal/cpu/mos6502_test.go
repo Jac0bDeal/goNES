@@ -3104,6 +3104,182 @@ func TestMos6502_eor(t *testing.T) {
 	}
 }
 
+func TestMos6502_inc(t *testing.T) {
+	testCases := []struct {
+		name string
+
+		address      word
+		initialValue byte
+
+		expectedValue            byte
+		expectedZflag            uint8
+		expectedNflag            uint8
+		expectedAdditionalCycles uint8
+	}{
+		{
+			name: "value is incremented",
+
+			address:      0x0420,
+			initialValue: 0x42,
+
+			expectedValue:            0x43,
+			expectedNflag:            0,
+			expectedZflag:            0,
+			expectedAdditionalCycles: 0,
+		},
+		{
+			name: "increment resulting in 0 sets Z=true",
+
+			address:      0x0420,
+			initialValue: 0xff,
+
+			expectedValue:            0x00,
+			expectedNflag:            0,
+			expectedZflag:            1,
+			expectedAdditionalCycles: 0,
+		},
+		{
+			name: "increment resulting in negative sets N=true",
+
+			address:      0x0420,
+			initialValue: 0xf0,
+
+			expectedValue:            0xf1,
+			expectedNflag:            1,
+			expectedZflag:            0,
+			expectedAdditionalCycles: 0,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			cpu := newTestMos6502()
+			cpu.addressAbsolute = tc.address
+			cpu.write(cpu.addressAbsolute, tc.initialValue)
+			additionalCycles := cpu.inc()
+
+			assert.Equal(t, tc.expectedValue, cpu.read(tc.address), "incorrect value")
+			assert.Equal(t, tc.expectedZflag, cpu.GetStatusFlag(Z), "incorrect Z flag")
+			assert.Equal(t, tc.expectedNflag, cpu.GetStatusFlag(N), "incorrect N flag")
+			assert.Equal(t, tc.expectedAdditionalCycles, additionalCycles, "incorrect additional cycles")
+		})
+	}
+}
+
+func TestMos6502_inx(t *testing.T) {
+	testCases := []struct {
+		name string
+
+		initialXvalue byte
+
+		expectedXvalue           byte
+		expectedZflag            uint8
+		expectedNflag            uint8
+		expectedAdditionalCycles uint8
+	}{
+		{
+			name: "value is incremented",
+
+			initialXvalue: 0x42,
+
+			expectedXvalue:           0x43,
+			expectedNflag:            0,
+			expectedZflag:            0,
+			expectedAdditionalCycles: 0,
+		},
+		{
+			name: "increment resulting in 0 sets Z=true",
+
+			initialXvalue: 0xff,
+
+			expectedXvalue:           0x00,
+			expectedNflag:            0,
+			expectedZflag:            1,
+			expectedAdditionalCycles: 0,
+		},
+		{
+			name: "increment resulting in negative sets N=true",
+
+			initialXvalue: 0xf0,
+
+			expectedXvalue:           0xf1,
+			expectedNflag:            1,
+			expectedZflag:            0,
+			expectedAdditionalCycles: 0,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			cpu := newTestMos6502()
+			cpu.x = tc.initialXvalue
+			additionalCycles := cpu.inx()
+
+			assert.Equal(t, tc.expectedXvalue, cpu.x, "incorrect X value")
+			assert.Equal(t, tc.expectedZflag, cpu.GetStatusFlag(Z), "incorrect Z flag")
+			assert.Equal(t, tc.expectedNflag, cpu.GetStatusFlag(N), "incorrect N flag")
+			assert.Equal(t, tc.expectedAdditionalCycles, additionalCycles, "incorrect additional cycles")
+		})
+	}
+}
+
+func TestMos6502_iny(t *testing.T) {
+	testCases := []struct {
+		name string
+
+		initialYvalue byte
+
+		expectedYvalue           byte
+		expectedZflag            uint8
+		expectedNflag            uint8
+		expectedAdditionalCycles uint8
+	}{
+		{
+			name: "value is incremented",
+
+			initialYvalue: 0x42,
+
+			expectedYvalue:           0x43,
+			expectedNflag:            0,
+			expectedZflag:            0,
+			expectedAdditionalCycles: 0,
+		},
+		{
+			name: "increment resulting in 0 sets Z=true",
+
+			initialYvalue: 0xff,
+
+			expectedYvalue:           0x00,
+			expectedNflag:            0,
+			expectedZflag:            1,
+			expectedAdditionalCycles: 0,
+		},
+		{
+			name: "increment resulting in negative sets N=true",
+
+			initialYvalue: 0xf0,
+
+			expectedYvalue:           0xf1,
+			expectedNflag:            1,
+			expectedZflag:            0,
+			expectedAdditionalCycles: 0,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			cpu := newTestMos6502()
+			cpu.y = tc.initialYvalue
+			additionalCycles := cpu.iny()
+
+			assert.Equal(t, tc.expectedYvalue, cpu.y, "incorrect Y value")
+			assert.Equal(t, tc.expectedZflag, cpu.GetStatusFlag(Z), "incorrect Z flag")
+			assert.Equal(t, tc.expectedNflag, cpu.GetStatusFlag(N), "incorrect N flag")
+			assert.Equal(t, tc.expectedAdditionalCycles, additionalCycles, "incorrect additional cycles")
+		})
+	}
+}
+
 func TestMos6502_sbc(t *testing.T) {
 	testCases := []struct {
 		name string

@@ -617,13 +617,14 @@ func (cpu *Mos6502) cpy() uint8 {
 // dec is the Decrement Value at Memory Location operation.
 func (cpu *Mos6502) dec() uint8 {
 	cpu.fetch()
-	cpu.temp = word(cpu.fetchedData - 1)
+	cpu.temp = word(cpu.fetchedData) - 1
 	cpu.write(cpu.addressAbsolute, byte(cpu.temp&0x00ff))
 	cpu.setStatusFlag(Z, (cpu.temp&0x00ff) == 0x0000)
 	cpu.setStatusFlag(N, (cpu.temp&0x0080) > 0)
 	return 0
 }
 
+// dex is the Decrement X Register operation.
 func (cpu *Mos6502) dex() uint8 {
 	cpu.x--
 	cpu.setStatusFlag(Z, cpu.x == 0x00)
@@ -631,6 +632,7 @@ func (cpu *Mos6502) dex() uint8 {
 	return 0
 }
 
+// dey is the Decrement Y Register operation.
 func (cpu *Mos6502) dey() uint8 {
 	cpu.y--
 	cpu.setStatusFlag(Z, cpu.y == 0x00)
@@ -638,6 +640,7 @@ func (cpu *Mos6502) dey() uint8 {
 	return 0
 }
 
+// eor is the Exclusive Or (XOR) operation.
 func (cpu *Mos6502) eor() uint8 {
 	cpu.fetch()
 	cpu.a = cpu.a ^ cpu.fetchedData
@@ -646,16 +649,29 @@ func (cpu *Mos6502) eor() uint8 {
 	return 0
 }
 
-//
+// inc is the Increment Value at Memory Location operation.
 func (cpu *Mos6502) inc() uint8 {
+	cpu.fetch()
+	cpu.temp = word(cpu.fetchedData) + 1
+	cpu.write(cpu.addressAbsolute, byte(cpu.temp&0x00ff))
+	cpu.setStatusFlag(Z, (cpu.temp&0x00ff) == 0x0000)
+	cpu.setStatusFlag(N, (cpu.temp&0x80) > 0)
 	return 0
 }
 
+// inx is the Increment X Register operation.
 func (cpu *Mos6502) inx() uint8 {
+	cpu.x++
+	cpu.setStatusFlag(Z, cpu.x == 0x00)
+	cpu.setStatusFlag(N, (cpu.x&0x80) > 0)
 	return 0
 }
 
+// iny is the Increment Y Register operation.
 func (cpu *Mos6502) iny() uint8 {
+	cpu.y++
+	cpu.setStatusFlag(Z, cpu.y == 0x00)
+	cpu.setStatusFlag(N, (cpu.y&0x80) > 0)
 	return 0
 }
 
