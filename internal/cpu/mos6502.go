@@ -751,8 +751,13 @@ func (cpu *Mos6502) nop() uint8 {
 	}
 }
 
+// ora is the Bitwise Logic OR operation.
 func (cpu *Mos6502) ora() uint8 {
-	return 0
+	cpu.fetch()
+	cpu.a = cpu.a | cpu.fetchedData
+	cpu.setStatusFlag(Z, cpu.a == 0x00)
+	cpu.setStatusFlag(N, (cpu.a&0x80) > 0)
+	return 1
 }
 
 func (cpu *Mos6502) pha() uint8 {

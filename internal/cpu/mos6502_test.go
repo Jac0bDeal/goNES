@@ -3834,6 +3834,66 @@ func TestMos6502_nop(t *testing.T) {
 	}
 }
 
+func TestMos6502_ora(t *testing.T) {
+	testCases := []struct {
+		name string
+
+		aValue    uint8
+		dataValue uint8
+
+		expectedAvalue           uint8
+		expectedZflag            uint8
+		expectedNflag            uint8
+		expectedAdditionalCycles uint8
+	}{
+		{
+			name:      "ora operation performed correctly",
+			aValue:    0b01010101,
+			dataValue: 0b00101010,
+
+			expectedAvalue:           0b01111111,
+			expectedZflag:            0,
+			expectedNflag:            0,
+			expectedAdditionalCycles: 1,
+		},
+		{
+			name:      "ora operation results in 0 sets Z true",
+			aValue:    0b00000000,
+			dataValue: 0b00000000,
+
+			expectedAvalue:           0b00000000,
+			expectedZflag:            1,
+			expectedNflag:            0,
+			expectedAdditionalCycles: 1,
+		},
+		{
+			name:      "ora operation results in negative result sets N true",
+			aValue:    0b10000000,
+			dataValue: 0b01111111,
+
+			expectedAvalue:           0b11111111,
+			expectedZflag:            0,
+			expectedNflag:            1,
+			expectedAdditionalCycles: 1,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			cpu := &Mos6502{
+				a:               tc.aValue,
+				addressAbsolute: 0x0000,
+				bus:             bus.NewBus(bus.RAM{tc.dataValue}),
+			}
+			additionalCycles := cpu.ora()
+
+			assert.Equal(t, tc.expectedAvalue, cpu.a, "incorrect A value")
+			assert.Equal(t, tc.expectedZflag, cpu.GetStatusFlag(Z), "incorrect Z flag")
+			assert.Equal(t, tc.expectedNflag, cpu.GetStatusFlag(N), "incorrect N flag")
+			assert.Equal(t, tc.expectedAdditionalCycles, additionalCycles, "incorrect additional cycles")
+		})
+	}
+}
+
 func TestMos6502_sbc(t *testing.T) {
 	testCases := []struct {
 		name string
