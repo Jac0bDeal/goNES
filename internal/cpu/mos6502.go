@@ -793,19 +793,58 @@ func (cpu *Mos6502) plp() uint8 {
 	return 0
 }
 
+// rol is the Rotate Left operation.
 func (cpu *Mos6502) rol() uint8 {
+	cpu.fetch()
+	cpu.temp = word(cpu.fetchedData)<<1 | word(cpu.GetStatusFlag(C))
+	cpu.setStatusFlag(C, (cpu.fetchedData&0x80) > 0)
+	cpu.setStatusFlag(Z, (cpu.temp&0x00ff) == 0x0000)
+	cpu.setStatusFlag(N, (cpu.temp&0x0080) > 0)
+	if cpu.lookup[cpu.opcode].addressMode == imp {
+		cpu.a = byte(cpu.temp & 0x00ff)
+	} else {
+		cpu.write(cpu.addressAbsolute, byte(cpu.temp&0x00ff))
+	}
 	return 0
 }
 
+// rol is the Rotate Right operation.
 func (cpu *Mos6502) ror() uint8 {
+	cpu.fetch()
+	cpu.temp = word(cpu.GetStatusFlag(C))<<7 | word(cpu.fetchedData)>>1
+	cpu.setStatusFlag(C, (cpu.fetchedData&0x01) > 0)
+	cpu.setStatusFlag(Z, (cpu.temp&0x00ff) == 0x0000)
+	cpu.setStatusFlag(N, (cpu.temp&0x0080) > 0)
+	if cpu.lookup[cpu.opcode].addressMode == imp {
+		cpu.a = byte(cpu.temp & 0x00ff)
+	} else {
+		cpu.write(cpu.addressAbsolute, byte(cpu.temp&0x00ff))
+	}
 	return 0
 }
 
+// rti is the Return from Interrupt operation.
 func (cpu *Mos6502) rti() uint8 {
+	cpu.stkp++
+	cpu.status = cpu.read(0x0100 + word(cpu.stkp))
+	cpu.status &= ^uint8(B)
+	cpu.status &= ^uint8(U)
+
+	cpu.stkp++
+	cpu.pc = word(cpu.read(0x0100 + word(cpu.stkp)))
+	cpu.stkp++
+	cpu.pc |= word(cpu.read(0x0100+word(cpu.stkp))) << 8
 	return 0
 }
 
+// rts is the Return from Subroutine operation.
 func (cpu *Mos6502) rts() uint8 {
+	cpu.stkp++
+	cpu.pc = word(cpu.read(0x0100 + word(cpu.stkp)))
+	cpu.stkp++
+	cpu.pc |= word(cpu.read(0x0100+word(cpu.stkp))) << 8
+
+	cpu.pc++
 	return 0
 }
 

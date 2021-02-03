@@ -4080,6 +4080,378 @@ func TestMos6502_plp(t *testing.T) {
 	}
 }
 
+func TestMos6502_rol(t *testing.T) {
+	testCases := []struct {
+		name string
+
+		dataValue   uint8
+		Cflag       bool
+		instruction instruction
+
+		expectedAvalue           uint8
+		expectedBusValue         uint8
+		expectedCflag            uint8
+		expectedZflag            uint8
+		expectedNflag            uint8
+		expectedAdditionalCycles uint8
+	}{
+		{
+			name: "rol operation with C=false and implied mode performed correctly",
+
+			dataValue: 0x01,
+			Cflag:     false,
+			instruction: instruction{
+				operation:   rol,
+				addressMode: imp,
+			},
+
+			expectedAvalue:           0x02,
+			expectedBusValue:         0x00,
+			expectedCflag:            0,
+			expectedZflag:            0,
+			expectedNflag:            0,
+			expectedAdditionalCycles: 0,
+		},
+		{
+			name: "rol operation with C=true and implied mode performed correctly",
+
+			dataValue: 0x01,
+			Cflag:     true,
+			instruction: instruction{
+				operation:   rol,
+				addressMode: imp,
+			},
+
+			expectedAvalue:           0x03,
+			expectedBusValue:         0x00,
+			expectedCflag:            0,
+			expectedZflag:            0,
+			expectedNflag:            0,
+			expectedAdditionalCycles: 0,
+		},
+		{
+			name: "rol operation in non-implied mode performed correctly",
+
+			dataValue: 0x01,
+			Cflag:     false,
+			instruction: instruction{
+				operation:   rol,
+				addressMode: "TST",
+			},
+
+			expectedAvalue:           0x00,
+			expectedBusValue:         0x02,
+			expectedCflag:            0,
+			expectedZflag:            0,
+			expectedNflag:            0,
+			expectedAdditionalCycles: 0,
+		},
+		{
+			name: "rol operation resulting in 0 sets Z true",
+
+			dataValue: 0x00,
+			Cflag:     false,
+			instruction: instruction{
+				operation:   rol,
+				addressMode: imp,
+			},
+
+			expectedAvalue:           0x00,
+			expectedBusValue:         0x00,
+			expectedCflag:            0,
+			expectedZflag:            1,
+			expectedNflag:            0,
+			expectedAdditionalCycles: 0,
+		},
+		{
+			name: "rol operation resulting in negative result sets N true",
+
+			dataValue: 0x70,
+			Cflag:     false,
+			instruction: instruction{
+				operation:   rol,
+				addressMode: imp,
+			},
+
+			expectedAvalue:           0xe0,
+			expectedBusValue:         0x00,
+			expectedCflag:            0,
+			expectedZflag:            0,
+			expectedNflag:            1,
+			expectedAdditionalCycles: 0,
+		},
+		{
+			name: "rol operation captures 7 bit shift in C flag",
+
+			dataValue: 0x80,
+			Cflag:     false,
+			instruction: instruction{
+				operation:   rol,
+				addressMode: imp,
+			},
+
+			expectedAvalue:           0x00,
+			expectedBusValue:         0x00,
+			expectedCflag:            1,
+			expectedZflag:            1,
+			expectedNflag:            0,
+			expectedAdditionalCycles: 0,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			cpu := &Mos6502{
+				addressAbsolute: 0x0000,
+				bus:             bus.NewBus(bus.RAM{}),
+				lookup:          mos6502LookupTable{tc.instruction},
+			}
+			cpu.setStatusFlag(C, tc.Cflag)
+			if tc.instruction.addressMode == imp {
+				cpu.fetchedData = tc.dataValue
+			} else {
+				cpu.write(cpu.addressAbsolute, tc.dataValue)
+			}
+			additionalCycles := cpu.rol()
+
+			assert.Equal(t, tc.expectedAvalue, cpu.a, "incorrect A value")
+			assert.Equal(t, tc.expectedBusValue, cpu.read(cpu.addressAbsolute), "incorrect Bus value")
+			assert.Equal(t, tc.expectedCflag, cpu.GetStatusFlag(C), "incorrect C flag")
+			assert.Equal(t, tc.expectedZflag, cpu.GetStatusFlag(Z), "incorrect Z flag")
+			assert.Equal(t, tc.expectedNflag, cpu.GetStatusFlag(N), "incorrect N flag")
+			assert.Equal(t, tc.expectedAdditionalCycles, additionalCycles, "incorrect additional cycles value")
+		})
+	}
+}
+
+func TestMos6502_ror(t *testing.T) {
+	testCases := []struct {
+		name string
+
+		dataValue   uint8
+		Cflag       bool
+		instruction instruction
+
+		expectedAvalue           uint8
+		expectedBusValue         uint8
+		expectedCflag            uint8
+		expectedZflag            uint8
+		expectedNflag            uint8
+		expectedAdditionalCycles uint8
+	}{
+		{
+			name: "ror operation with C=false and implied mode performed correctly",
+
+			dataValue: 0x20,
+			Cflag:     false,
+			instruction: instruction{
+				operation:   ror,
+				addressMode: imp,
+			},
+
+			expectedAvalue:           0x10,
+			expectedBusValue:         0x00,
+			expectedCflag:            0,
+			expectedZflag:            0,
+			expectedNflag:            0,
+			expectedAdditionalCycles: 0,
+		},
+		{
+			name: "ror operation with C=true and implied mode performed correctly",
+
+			dataValue: 0x20,
+			Cflag:     true,
+			instruction: instruction{
+				operation:   ror,
+				addressMode: imp,
+			},
+
+			expectedAvalue:           0x90,
+			expectedBusValue:         0x00,
+			expectedCflag:            0,
+			expectedZflag:            0,
+			expectedNflag:            1,
+			expectedAdditionalCycles: 0,
+		},
+		{
+			name: "ror operation in non-implied mode performed correctly",
+
+			dataValue: 0x20,
+			Cflag:     false,
+			instruction: instruction{
+				operation:   ror,
+				addressMode: "TST",
+			},
+
+			expectedAvalue:           0x00,
+			expectedBusValue:         0x10,
+			expectedCflag:            0,
+			expectedZflag:            0,
+			expectedNflag:            0,
+			expectedAdditionalCycles: 0,
+		},
+		{
+			name: "ror operation resulting in 0 sets Z true",
+
+			dataValue: 0x00,
+			Cflag:     false,
+			instruction: instruction{
+				operation:   ror,
+				addressMode: imp,
+			},
+
+			expectedAvalue:           0x00,
+			expectedBusValue:         0x00,
+			expectedCflag:            0,
+			expectedZflag:            1,
+			expectedNflag:            0,
+			expectedAdditionalCycles: 0,
+		},
+		{
+			name: "ror operation resulting in negative result sets N true",
+
+			dataValue: 0x00,
+			Cflag:     true,
+			instruction: instruction{
+				operation:   ror,
+				addressMode: imp,
+			},
+
+			expectedAvalue:           0x80,
+			expectedBusValue:         0x00,
+			expectedCflag:            0,
+			expectedZflag:            0,
+			expectedNflag:            1,
+			expectedAdditionalCycles: 0,
+		},
+		{
+			name: "ror operation captures 0 bit shift in C flag",
+
+			dataValue: 0x01,
+			Cflag:     false,
+			instruction: instruction{
+				operation:   ror,
+				addressMode: imp,
+			},
+
+			expectedAvalue:           0x00,
+			expectedBusValue:         0x00,
+			expectedCflag:            1,
+			expectedZflag:            1,
+			expectedNflag:            0,
+			expectedAdditionalCycles: 0,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			cpu := &Mos6502{
+				addressAbsolute: 0x0000,
+				bus:             bus.NewBus(bus.RAM{}),
+				lookup:          mos6502LookupTable{tc.instruction},
+			}
+			cpu.setStatusFlag(C, tc.Cflag)
+			if tc.instruction.addressMode == imp {
+				cpu.fetchedData = tc.dataValue
+			} else {
+				cpu.write(cpu.addressAbsolute, tc.dataValue)
+			}
+			additionalCycles := cpu.ror()
+
+			assert.Equal(t, tc.expectedAvalue, cpu.a, "incorrect A value")
+			assert.Equal(t, tc.expectedBusValue, cpu.read(cpu.addressAbsolute), "incorrect Bus value")
+			assert.Equal(t, tc.expectedCflag, cpu.GetStatusFlag(C), "incorrect C flag")
+			assert.Equal(t, tc.expectedZflag, cpu.GetStatusFlag(Z), "incorrect Z flag")
+			assert.Equal(t, tc.expectedNflag, cpu.GetStatusFlag(N), "incorrect N flag")
+			assert.Equal(t, tc.expectedAdditionalCycles, additionalCycles, "incorrect additional cycles value")
+		})
+	}
+}
+
+func TestMos6502_rti(t *testing.T) {
+	testCases := []struct {
+		name string
+
+		initialStkpValue byte
+		bus              *bus.Bus
+
+		expectedPC               word
+		expectedStkp             byte
+		expectedStatus           byte
+		expectedAdditionalCycles uint8
+	}{
+		{
+			name: "correct status and pc read",
+
+			initialStkpValue: 0x00,
+			bus: newBusBuilder().
+				write(0x0101, 0xff).
+				write(0x0102, 0x20).
+				write(0x0103, 0x04).
+				build(),
+
+			expectedPC:               0x0420,
+			expectedStkp:             0x03,
+			expectedStatus:           0b11001111,
+			expectedAdditionalCycles: 0,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			cpu := &Mos6502{
+				stkp: tc.initialStkpValue,
+				bus:  tc.bus,
+			}
+			additionalCycles := cpu.rti()
+
+			assert.Equal(t, tc.expectedPC, cpu.pc, "incorrect PC value")
+			assert.Equal(t, tc.expectedStkp, cpu.stkp, "incorrect stack pointer value")
+			assert.Equal(t, tc.expectedStatus, cpu.status, "incorrect status value")
+			assert.Equal(t, tc.expectedAdditionalCycles, additionalCycles, "incorrect additional cycles")
+		})
+	}
+}
+
+func TestMos6502_rts(t *testing.T) {
+	testCases := []struct {
+		name string
+
+		initialStkpValue byte
+		bus              *bus.Bus
+
+		expectedPC               word
+		expectedStkp             byte
+		expectedAdditionalCycles uint8
+	}{
+		{
+			name: "correct status and pc read",
+
+			initialStkpValue: 0x00,
+			bus: newBusBuilder().
+				write(0x0101, 0x1f).
+				write(0x0102, 0x04).
+				build(),
+
+			expectedPC:               0x0420,
+			expectedStkp:             0x02,
+			expectedAdditionalCycles: 0,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			cpu := &Mos6502{
+				stkp: tc.initialStkpValue,
+				bus:  tc.bus,
+			}
+			additionalCycles := cpu.rts()
+
+			assert.Equal(t, tc.expectedPC, cpu.pc, "incorrect PC value")
+			assert.Equal(t, tc.expectedStkp, cpu.stkp, "incorrect stack pointer value")
+			assert.Equal(t, tc.expectedAdditionalCycles, additionalCycles, "incorrect additional cycles")
+		})
+	}
+}
+
 func TestMos6502_sbc(t *testing.T) {
 	testCases := []struct {
 		name string
