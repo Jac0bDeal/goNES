@@ -3894,6 +3894,192 @@ func TestMos6502_ora(t *testing.T) {
 	}
 }
 
+func TestMos6502_pha(t *testing.T) {
+	testCases := []struct {
+		name string
+
+		aValue           uint8
+		initialStkpValue uint8
+
+		expectedStkpValue        uint8
+		expectedBus              *bus.Bus
+		expectedAdditionalCycles uint8
+	}{
+		{
+			name:             "pha operation performed correctly",
+			aValue:           0x42,
+			initialStkpValue: 0x11,
+
+			expectedStkpValue:        0x10,
+			expectedBus:              newBusBuilder().write(0x0111, 0x42).build(),
+			expectedAdditionalCycles: 0,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			cpu := &Mos6502{
+				a:    tc.aValue,
+				stkp: tc.initialStkpValue,
+				bus:  bus.NewBus(bus.RAM{}),
+			}
+			additionalCycles := cpu.pha()
+
+			assert.Equal(t, tc.expectedStkpValue, cpu.stkp, "incorrect stack pointer value")
+			assert.Equal(t, tc.expectedBus, cpu.bus, "incorrect bus flag")
+			assert.Equal(t, tc.expectedAdditionalCycles, additionalCycles, "incorrect additional cycles")
+		})
+	}
+}
+
+func TestMos6502_php(t *testing.T) {
+	testCases := []struct {
+		name string
+
+		statusValue      uint8
+		initialStkpValue uint8
+
+		expectedStkpValue        uint8
+		expectedStatusValue      uint8
+		expectedBus              *bus.Bus
+		expectedAdditionalCycles uint8
+	}{
+		{
+			name:             "php operation performed correctly",
+			statusValue:      0b11001111,
+			initialStkpValue: 0x11,
+
+			expectedStkpValue:        0x10,
+			expectedStatusValue:      0b11001111,
+			expectedBus:              newBusBuilder().write(0x0111, 0b11111111).build(),
+			expectedAdditionalCycles: 0,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			cpu := &Mos6502{
+				status: tc.statusValue,
+				stkp:   tc.initialStkpValue,
+				bus:    bus.NewBus(bus.RAM{}),
+			}
+			additionalCycles := cpu.php()
+
+			assert.Equal(t, tc.expectedStkpValue, cpu.stkp, "incorrect stack pointer value")
+			assert.Equal(t, tc.expectedStatusValue, cpu.status, "incorrect status value")
+			assert.Equal(t, tc.expectedBus, cpu.bus, "incorrect bus flag")
+			assert.Equal(t, tc.expectedAdditionalCycles, additionalCycles, "incorrect additional cycles")
+		})
+	}
+}
+
+func TestMos6502_pla(t *testing.T) {
+	testCases := []struct {
+		name string
+
+		bus              *bus.Bus
+		initialStkpValue uint8
+
+		expectedStkpValue        uint8
+		expectedAvalue           uint8
+		expectedZflag            uint8
+		expectedNflag            uint8
+		expectedAdditionalCycles uint8
+	}{
+		{
+			name: "pla operation performed correctly",
+
+			initialStkpValue: 0x10,
+			bus:              newBusBuilder().write(0x0111, 0x42).build(),
+
+			expectedStkpValue:        0x11,
+			expectedAvalue:           0x42,
+			expectedZflag:            0,
+			expectedNflag:            0,
+			expectedAdditionalCycles: 0,
+		},
+		{
+			name: "pla operation reads negative value sets N true",
+
+			initialStkpValue: 0x10,
+			bus:              newBusBuilder().write(0x0111, 0xff).build(),
+
+			expectedStkpValue:        0x11,
+			expectedAvalue:           0xff,
+			expectedZflag:            0,
+			expectedNflag:            1,
+			expectedAdditionalCycles: 0,
+		},
+		{
+			name: "pla operation reads zero value sets Z true",
+
+			initialStkpValue: 0x10,
+			bus:              newBusBuilder().write(0x0111, 0x00).build(),
+
+			expectedStkpValue:        0x11,
+			expectedAvalue:           0x00,
+			expectedZflag:            1,
+			expectedNflag:            0,
+			expectedAdditionalCycles: 0,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			cpu := &Mos6502{
+				stkp: tc.initialStkpValue,
+				bus:  tc.bus,
+			}
+			additionalCycles := cpu.pla()
+
+			assert.Equal(t, tc.expectedStkpValue, cpu.stkp, "incorrect stack pointer value")
+			assert.Equal(t, tc.expectedAvalue, cpu.a, "incorrect A value")
+			assert.Equal(t, tc.expectedZflag, cpu.GetStatusFlag(Z), "incorrect Z flag")
+			assert.Equal(t, tc.expectedNflag, cpu.GetStatusFlag(N), "incorrect N flag")
+			assert.Equal(t, tc.expectedAdditionalCycles, additionalCycles, "incorrect additional cycles")
+		})
+	}
+}
+
+func TestMos6502_plp(t *testing.T) {
+	testCases := []struct {
+		name string
+
+		bus              *bus.Bus
+		initialStkpValue uint8
+
+		expectedStkpValue        uint8
+		expectedStatusValue      uint8
+		expectedUflag            uint8
+		expectedAdditionalCycles uint8
+	}{
+		{
+			name: "plp operation performed correctly",
+
+			initialStkpValue: 0x10,
+			bus: newBusBuilder().
+				write(0x0111, 0b11011111).
+				build(),
+
+			expectedStkpValue:        0x11,
+			expectedStatusValue:      0b11111111,
+			expectedUflag:            1,
+			expectedAdditionalCycles: 0,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			cpu := &Mos6502{
+				stkp: tc.initialStkpValue,
+				bus:  tc.bus,
+			}
+			additionalCycles := cpu.plp()
+
+			assert.Equal(t, tc.expectedStkpValue, cpu.stkp, "incorrect stack pointer value")
+			assert.Equal(t, tc.expectedStatusValue, cpu.status, "incorrect A value")
+			assert.Equal(t, tc.expectedUflag, cpu.GetStatusFlag(U), "incorrect Z flag")
+			assert.Equal(t, tc.expectedAdditionalCycles, additionalCycles, "incorrect additional cycles")
+		})
+	}
+}
+
 func TestMos6502_sbc(t *testing.T) {
 	testCases := []struct {
 		name string

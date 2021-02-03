@@ -760,19 +760,36 @@ func (cpu *Mos6502) ora() uint8 {
 	return 1
 }
 
+// pha is the Push Accumulator to Stack operation.
 func (cpu *Mos6502) pha() uint8 {
+	cpu.write(0x0100+word(cpu.stkp), cpu.a)
+	cpu.stkp--
 	return 0
 }
 
+// php is the Push Status Register to Stack operation.
 func (cpu *Mos6502) php() uint8 {
+	cpu.write(0x0100+word(cpu.stkp), cpu.status|byte(B)|byte(U))
+	cpu.setStatusFlag(B, false)
+	cpu.setStatusFlag(U, false)
+	cpu.stkp--
 	return 0
 }
 
+// pla is the Pop Accumulator Off Stack operation.
 func (cpu *Mos6502) pla() uint8 {
+	cpu.stkp++
+	cpu.a = cpu.read(0x0100 + word(cpu.stkp))
+	cpu.setStatusFlag(Z, cpu.a == 0x00)
+	cpu.setStatusFlag(N, (cpu.a&0x80) > 0)
 	return 0
 }
 
+// plp is the Pop Status Register Off Stack operation.
 func (cpu *Mos6502) plp() uint8 {
+	cpu.stkp++
+	cpu.status = cpu.read(0x0100 + word(cpu.stkp))
+	cpu.setStatusFlag(U, true)
 	return 0
 }
 
