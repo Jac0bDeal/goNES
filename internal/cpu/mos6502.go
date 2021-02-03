@@ -1,6 +1,8 @@
 package cpu
 
 import (
+	"math/bits"
+
 	"github.com/Jac0bDeal/goNES/internal/bus"
 )
 
@@ -488,6 +490,7 @@ func (cpu *Mos6502) beq() uint8 {
 	return 0
 }
 
+// bit is the Test Bits operation.
 func (cpu *Mos6502) bit() uint8 {
 	cpu.fetch()
 	cpu.temp = word(cpu.a & cpu.fetchedData)
@@ -695,19 +698,46 @@ func (cpu *Mos6502) jsr() uint8 {
 	return 0
 }
 
+// lda is the Load Accumulator operation.
 func (cpu *Mos6502) lda() uint8 {
-	return 0
+	cpu.fetch()
+	cpu.a = cpu.fetchedData
+	cpu.setStatusFlag(Z, cpu.a == 0x00)
+	cpu.setStatusFlag(N, (cpu.a&0x80) > 0)
+	return 1
 }
 
+// lda is the Load X Register operation.
 func (cpu *Mos6502) ldx() uint8 {
-	return 0
+	cpu.fetch()
+	cpu.x = cpu.fetchedData
+	cpu.setStatusFlag(Z, cpu.x == 0x00)
+	cpu.setStatusFlag(N, (cpu.x&0x80) > 0)
+	return 1
 }
 
+// lda is the Load Y Register operation.
 func (cpu *Mos6502) ldy() uint8 {
-	return 0
+	cpu.fetch()
+	cpu.y = cpu.fetchedData
+	cpu.setStatusFlag(Z, cpu.y == 0x00)
+	cpu.setStatusFlag(N, (cpu.y&0x80) > 0)
+	return 1
 }
 
+// lsr is the Logical Shift Right operation. Shifts all bits to the right by one,
+// shifting original bit 0 into carry flag and carrying to bit 7.
 func (cpu *Mos6502) lsr() uint8 {
+	cpu.fetch()
+	cpu.setStatusFlag(C, (cpu.fetchedData&0x0001) > 0)
+	cpu.temp = word(bits.RotateLeft8(cpu.fetchedData, -1))
+	cpu.setStatusFlag(Z, (cpu.temp&0x00ff) == 0x0000)
+	cpu.setStatusFlag(N, (cpu.temp&0x0080) > 0)
+	if cpu.lookup[cpu.opcode].addressMode == imp {
+		cpu.a = byte(cpu.temp & 0x00ff)
+	} else {
+		cpu.write(cpu.addressAbsolute, byte(cpu.temp&0x00ff))
+	}
 	return 0
 }
 

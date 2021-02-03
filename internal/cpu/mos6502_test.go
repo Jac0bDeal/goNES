@@ -3499,6 +3499,283 @@ func TestMos6502_jsr(t *testing.T) {
 	}
 }
 
+func TestMos6502_lda(t *testing.T) {
+	testCases := []struct {
+		name string
+
+		busData byte
+
+		expectedAvalue           byte
+		expectedZflag            uint8
+		expectedNflag            uint8
+		expectedAdditionalCycles uint8
+	}{
+		{
+			name: "accumulator assigned correct value",
+
+			busData: 0x42,
+
+			expectedAvalue:           0x42,
+			expectedZflag:            0,
+			expectedNflag:            0,
+			expectedAdditionalCycles: 1,
+		},
+		{
+			name: "accumulator assigned zero value and Z set true",
+
+			busData: 0x00,
+
+			expectedAvalue:           0x00,
+			expectedZflag:            1,
+			expectedNflag:            0,
+			expectedAdditionalCycles: 1,
+		},
+		{
+			name: "accumulator assigned negative value and N set true",
+
+			busData: 0x80,
+
+			expectedAvalue:           0x80,
+			expectedZflag:            0,
+			expectedNflag:            1,
+			expectedAdditionalCycles: 1,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			cpu := newTestMos6502()
+			cpu.addressAbsolute = 0x0000
+			cpu.bus = newBusBuilder().write(cpu.addressAbsolute, tc.busData).build()
+			additionalCycles := cpu.lda()
+
+			assert.Equal(t, tc.expectedAvalue, cpu.a, "incorrect A value")
+			assert.Equal(t, tc.expectedZflag, cpu.GetStatusFlag(Z), "incorrect Z flag")
+			assert.Equal(t, tc.expectedNflag, cpu.GetStatusFlag(N), "incorrect N flag")
+			assert.Equal(t, tc.expectedAdditionalCycles, additionalCycles, "incorrect additional cycles")
+		})
+	}
+}
+
+func TestMos6502_ldx(t *testing.T) {
+	testCases := []struct {
+		name string
+
+		busData byte
+
+		expectedXvalue           byte
+		expectedZflag            uint8
+		expectedNflag            uint8
+		expectedAdditionalCycles uint8
+	}{
+		{
+			name: "x register assigned correct value",
+
+			busData: 0x42,
+
+			expectedXvalue:           0x42,
+			expectedZflag:            0,
+			expectedNflag:            0,
+			expectedAdditionalCycles: 1,
+		},
+		{
+			name: "x register assigned zero value and Z set true",
+
+			busData: 0x00,
+
+			expectedXvalue:           0x00,
+			expectedZflag:            1,
+			expectedNflag:            0,
+			expectedAdditionalCycles: 1,
+		},
+		{
+			name: "x register assigned negative value and N set true",
+
+			busData: 0x80,
+
+			expectedXvalue:           0x80,
+			expectedZflag:            0,
+			expectedNflag:            1,
+			expectedAdditionalCycles: 1,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			cpu := newTestMos6502()
+			cpu.addressAbsolute = 0x0000
+			cpu.bus = newBusBuilder().write(cpu.addressAbsolute, tc.busData).build()
+			additionalCycles := cpu.ldx()
+
+			assert.Equal(t, tc.expectedXvalue, cpu.x, "incorrect X value")
+			assert.Equal(t, tc.expectedZflag, cpu.GetStatusFlag(Z), "incorrect Z flag")
+			assert.Equal(t, tc.expectedNflag, cpu.GetStatusFlag(N), "incorrect N flag")
+			assert.Equal(t, tc.expectedAdditionalCycles, additionalCycles, "incorrect additional cycles")
+		})
+	}
+}
+
+func TestMos6502_ldy(t *testing.T) {
+	testCases := []struct {
+		name string
+
+		busData byte
+
+		expectedYvalue           byte
+		expectedZflag            uint8
+		expectedNflag            uint8
+		expectedAdditionalCycles uint8
+	}{
+		{
+			name: "y register assigned correct value",
+
+			busData: 0x42,
+
+			expectedYvalue:           0x42,
+			expectedZflag:            0,
+			expectedNflag:            0,
+			expectedAdditionalCycles: 1,
+		},
+		{
+			name: "y register assigned zero value and Z set true",
+
+			busData: 0x00,
+
+			expectedYvalue:           0x00,
+			expectedZflag:            1,
+			expectedNflag:            0,
+			expectedAdditionalCycles: 1,
+		},
+		{
+			name: "y register assigned negative value and N set true",
+
+			busData: 0x80,
+
+			expectedYvalue:           0x80,
+			expectedZflag:            0,
+			expectedNflag:            1,
+			expectedAdditionalCycles: 1,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			cpu := newTestMos6502()
+			cpu.addressAbsolute = 0x0000
+			cpu.bus = newBusBuilder().write(cpu.addressAbsolute, tc.busData).build()
+			additionalCycles := cpu.ldy()
+
+			assert.Equal(t, tc.expectedYvalue, cpu.y, "incorrect Y value")
+			assert.Equal(t, tc.expectedZflag, cpu.GetStatusFlag(Z), "incorrect Z flag")
+			assert.Equal(t, tc.expectedNflag, cpu.GetStatusFlag(N), "incorrect N flag")
+			assert.Equal(t, tc.expectedAdditionalCycles, additionalCycles, "incorrect additional cycles")
+		})
+	}
+}
+
+func TestMos6502_lsr(t *testing.T) {
+	testCases := []struct {
+		name string
+
+		dataValue   uint8
+		instruction instruction
+
+		expectedAvalue           uint8
+		expectedBusValue         uint8
+		expectedCflag            uint8
+		expectedZflag            uint8
+		expectedNflag            uint8
+		expectedAdditionalCycles uint8
+	}{
+		{
+			name: "lsr operation in implied mode performed correctly",
+
+			dataValue: 0x42,
+			instruction: instruction{
+				operation:   lsr,
+				addressMode: imp,
+			},
+
+			expectedAvalue:           0x21,
+			expectedBusValue:         0x00,
+			expectedCflag:            0,
+			expectedZflag:            0,
+			expectedNflag:            0,
+			expectedAdditionalCycles: 0,
+		},
+		{
+			name: "lsr operation in non-implied mode performed correctly",
+
+			dataValue: 0x42,
+			instruction: instruction{
+				operation:   lsr,
+				addressMode: "TST",
+			},
+
+			expectedAvalue:           0x00,
+			expectedBusValue:         0x21,
+			expectedCflag:            0,
+			expectedZflag:            0,
+			expectedNflag:            0,
+			expectedAdditionalCycles: 0,
+		},
+		{
+			name: "lsr operation resulting in 0 sets Z true",
+
+			dataValue: 0x00,
+			instruction: instruction{
+				operation:   lsr,
+				addressMode: imp,
+			},
+
+			expectedAvalue:           0x00,
+			expectedBusValue:         0x00,
+			expectedCflag:            0,
+			expectedZflag:            1,
+			expectedNflag:            0,
+			expectedAdditionalCycles: 0,
+		},
+		{
+			name: "lsr operation resulting in negative result sets N and C true",
+
+			dataValue: 0x05,
+			instruction: instruction{
+				operation:   lsr,
+				addressMode: imp,
+			},
+
+			expectedAvalue:           0x82,
+			expectedBusValue:         0x00,
+			expectedCflag:            1,
+			expectedZflag:            0,
+			expectedNflag:            1,
+			expectedAdditionalCycles: 0,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			cpu := &Mos6502{
+				addressAbsolute: 0x0000,
+				bus:             bus.NewBus(bus.RAM{}),
+				lookup:          mos6502LookupTable{tc.instruction},
+			}
+			if tc.instruction.addressMode == imp {
+				cpu.fetchedData = tc.dataValue
+			} else {
+				cpu.write(cpu.addressAbsolute, tc.dataValue)
+			}
+			additionalCycles := cpu.lsr()
+
+			assert.Equal(t, tc.expectedAvalue, cpu.a, "incorrect A value")
+			assert.Equal(t, tc.expectedBusValue, cpu.read(cpu.addressAbsolute), "incorrect Bus value")
+			assert.Equal(t, tc.expectedCflag, cpu.GetStatusFlag(C), "incorrect C flag")
+			assert.Equal(t, tc.expectedZflag, cpu.GetStatusFlag(Z), "incorrect Z flag")
+			assert.Equal(t, tc.expectedNflag, cpu.GetStatusFlag(N), "incorrect N flag")
+			assert.Equal(t, tc.expectedAdditionalCycles, additionalCycles, "incorrect additional cycles value")
+		})
+	}
+}
+
 func TestMos6502_sbc(t *testing.T) {
 	testCases := []struct {
 		name string
