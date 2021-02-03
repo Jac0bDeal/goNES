@@ -3776,6 +3776,64 @@ func TestMos6502_lsr(t *testing.T) {
 	}
 }
 
+func TestMos6502_nop(t *testing.T) {
+	additionalCycleOpcodes := []byte{
+		0x1c,
+		0x3c,
+		0x5c,
+		0x7c,
+		0xdc,
+		0xfc,
+	}
+	noAdditionalCycleOpcodes := make([]byte, 0, 256-len(additionalCycleOpcodes))
+	for opcode := 0x00; opcode < 0x100; opcode++ {
+		var match bool
+		for _, o := range additionalCycleOpcodes {
+			if byte(opcode) == o {
+				match = true
+			}
+		}
+		if !match {
+			noAdditionalCycleOpcodes = append(noAdditionalCycleOpcodes, byte(opcode))
+		}
+	}
+
+	testCases := []struct {
+		name string
+
+		opcodes []byte
+
+		expectedAdditionalCycles uint8
+	}{
+		{
+			name: "opcodes requiring no additional cycls",
+
+			opcodes: noAdditionalCycleOpcodes,
+
+			expectedAdditionalCycles: 0,
+		},
+		{
+			name: "opcodes requiring 1 additional cycle",
+
+			opcodes: additionalCycleOpcodes,
+
+			expectedAdditionalCycles: 1,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			for _, opcode := range tc.opcodes {
+				cpu := newTestMos6502()
+				cpu.opcode = opcode
+				additionalCycles := cpu.nop()
+
+				assert.Equal(t, tc.expectedAdditionalCycles, additionalCycles, "incorrect additional cycles")
+			}
+		})
+	}
+}
+
 func TestMos6502_sbc(t *testing.T) {
 	testCases := []struct {
 		name string

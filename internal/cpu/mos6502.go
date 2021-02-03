@@ -741,8 +741,14 @@ func (cpu *Mos6502) lsr() uint8 {
 	return 0
 }
 
+// nop is the No Operation operation. Adds additional cycle in some cases.
 func (cpu *Mos6502) nop() uint8 {
-	return 0
+	switch cpu.opcode {
+	case 0x1c, 0x3c, 0x5c, 0x7c, 0xdc, 0xfc:
+		return 1
+	default:
+		return 0
+	}
 }
 
 func (cpu *Mos6502) ora() uint8 {
