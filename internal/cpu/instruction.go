@@ -7,7 +7,7 @@ const (
 	rel = "REL"
 	abs = "ABS"; abx = "ABX"; aby = "ABY"
 	ind = "IND"; izx = "IZX"; izy = "IZY"
-	
+
 	// operations
 	adc = "ADC"; and = "AND"; asl = "ASL"
 	bcc = "BCC"; bcs = "BCS"; beq = "BEQ"; bit = "BIT"; bmi = "BMI"; bne = "BNE"; bpl = "BPL"; brk = "BRK";  bvc = "BVC"; bvs = "BVS"
@@ -24,6 +24,22 @@ const (
 	sbc = "SBC"; sec = "SEC"; sed = "SED"; sei = "SEI"; sta = "STA"; stx = "STX"; sty = "STY"
 	tax = "TAX"; tay = "TAY"; tsx = "TSX"; txa = "TXA"; txs = "TXS"; tya = "TYA"
 	xxx = "???"
+)
+
+const (
+	assemblyInstructionFmt = "$%X: %s %s"
+	impAssemblyString      = " {IMP}"
+	immAssemblyFmt         = "#$%X {IMM}"
+	zp0AssemblyFmt         = "$%X {ZP0}"
+	zpxAssemblyFmt         = "$%X, X {ZPX}"
+	zpyAssemblyFmt         = "$%X, Y {ZPY}"
+	izxAssemblyFmt         = "($%X, X) {IZX}"
+	izyAssemblyFmt         = "($%X), Y {IZY}"
+	absAssemblyFmt         = "$%X {ABS}"
+	abxAssemblyFmt         = "$%X, X {ABX}"
+	abyAssemblyFmt         = "$%X, Y {ABY}"
+	indAssemblyFmt         = "($%X) {IND}"
+	relAssemblyFmt         = "$%X [$%X] {REL}"
 )
 
 type instruction struct {

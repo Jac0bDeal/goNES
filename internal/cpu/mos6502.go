@@ -1,6 +1,7 @@
 package cpu
 
 import (
+	"fmt"
 	"math/bits"
 
 	"github.com/Jac0bDeal/goNES/internal/bus"
@@ -64,6 +65,88 @@ func (cpu *Mos6502) ConnectBus(b *bus.Bus) {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Convenience Methods /////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Disassemble builds a map of assembly strings for a given range of addresses.
+func (cpu *Mos6502) Disassemble(addressStart uint16, addressStop uint16) map[uint16]string {
+	address := addressStart
+	assemblyLines := make(map[uint16]string)
+	for address < addressStop {
+		lineAddress := address
+
+		opcode := cpu.bus.ReadByteOnly(address)
+		instruction := cpu.lookup[opcode]
+		address++
+
+		var instructionString string
+		switch instruction.addressMode {
+		case imp:
+			instructionString = impAssemblyString
+		case imm:
+			value := cpu.bus.ReadByteOnly(address)
+			address++
+			instructionString = fmt.Sprintf(immAssemblyFmt, value)
+		case zp0:
+			value := cpu.bus.ReadByteOnly(address)
+			address++
+			instructionString = fmt.Sprintf(zp0AssemblyFmt, value)
+		case zpx:
+			value := cpu.bus.ReadByteOnly(address)
+			address++
+			instructionString = fmt.Sprintf(zpxAssemblyFmt, value)
+		case zpy:
+			value := cpu.bus.ReadByteOnly(address)
+			address++
+			instructionString = fmt.Sprintf(zpyAssemblyFmt, value)
+		case izx:
+			value := cpu.bus.ReadByteOnly(address)
+			address++
+			instructionString = fmt.Sprintf(izxAssemblyFmt, value)
+		case izy:
+			value := cpu.bus.ReadByteOnly(address)
+			address++
+			instructionString = fmt.Sprintf(izyAssemblyFmt, value)
+		case abs:
+			lowByte := cpu.bus.ReadByteOnly(address)
+			address++
+			highByte := cpu.bus.ReadByteOnly(address)
+			address++
+			value := (uint16(highByte) << 8) | uint16(lowByte)
+			instructionString = fmt.Sprintf(absAssemblyFmt, value)
+		case abx:
+			lowByte := cpu.bus.ReadByteOnly(address)
+			address++
+			highByte := cpu.bus.ReadByteOnly(address)
+			address++
+			value := (uint16(highByte) << 8) | uint16(lowByte)
+			instructionString = fmt.Sprintf(abxAssemblyFmt, value)
+		case aby:
+			lowByte := cpu.bus.ReadByteOnly(address)
+			address++
+			highByte := cpu.bus.ReadByteOnly(address)
+			address++
+			value := (uint16(highByte) << 8) | uint16(lowByte)
+			instructionString = fmt.Sprintf(abyAssemblyFmt, value)
+		case ind:
+			lowByte := cpu.bus.ReadByteOnly(address)
+			address++
+			highByte := cpu.bus.ReadByteOnly(address)
+			address++
+			value := (uint16(highByte) << 8) | uint16(lowByte)
+			instructionString = fmt.Sprintf(indAssemblyFmt, value)
+		case rel:
+			value := cpu.bus.ReadByteOnly(address)
+			address++
+			instructionString = fmt.Sprintf(relAssemblyFmt, value, address + uint16(value))
+		default:
+			instructionString = "ERROR"
+		}
+
+		assemblyString := fmt.Sprintf(assemblyInstructionFmt, lineAddress, instruction.operation, instructionString)
+		assemblyLines[lineAddress] = assemblyString
+	}
+
+	return assemblyLines
+}
 
 // GetAccumulator returns the current value of the Accumulator Register.
 func (cpu *Mos6502) GetAccumulator() byte {
