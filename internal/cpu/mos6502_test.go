@@ -4763,8 +4763,7 @@ func TestMos6502_sec(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			cpu := &Mos6502{
-			}
+			cpu := &Mos6502{}
 			cpu.setStatusFlag(C, tc.initialCflag)
 			additionalCycles := cpu.sec()
 
@@ -4803,8 +4802,7 @@ func TestMos6502_sed(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			cpu := &Mos6502{
-			}
+			cpu := &Mos6502{}
 			cpu.setStatusFlag(D, tc.initialDflag)
 			additionalCycles := cpu.sed()
 
@@ -4843,8 +4841,7 @@ func TestMos6502_sei(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			cpu := &Mos6502{
-			}
+			cpu := &Mos6502{}
 			cpu.setStatusFlag(I, tc.initialIflag)
 			additionalCycles := cpu.sei()
 
