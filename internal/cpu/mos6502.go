@@ -136,7 +136,7 @@ func (cpu *Mos6502) Disassemble(addressStart uint16, addressStop uint16) map[uin
 		case rel:
 			value := cpu.bus.ReadByteOnly(address)
 			address++
-			instructionString = fmt.Sprintf(relAssemblyFmt, value, address + uint16(value))
+			instructionString = fmt.Sprintf(relAssemblyFmt, value, address+uint16(value))
 		default:
 			instructionString = "ERROR"
 		}
