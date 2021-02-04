@@ -4733,3 +4733,237 @@ func TestMos6502_sbc(t *testing.T) {
 		})
 	}
 }
+
+func TestMos6502_sec(t *testing.T) {
+	testCases := []struct {
+		name string
+
+		initialCflag bool
+
+		expectedCflag            uint8
+		expectedAdditionalCycles uint8
+	}{
+		{
+			name: "C=false is set to true",
+
+			initialCflag: false,
+
+			expectedCflag:            1,
+			expectedAdditionalCycles: 0,
+		},
+		{
+			name: "C=true stays true",
+
+			initialCflag: true,
+
+			expectedCflag:            1,
+			expectedAdditionalCycles: 0,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			cpu := &Mos6502{
+			}
+			cpu.setStatusFlag(C, tc.initialCflag)
+			additionalCycles := cpu.sec()
+
+			assert.Equal(t, tc.expectedCflag, cpu.GetStatusFlag(C), "incorrect C flag")
+			assert.Equal(t, tc.expectedAdditionalCycles, additionalCycles, "incorrect additional cycles")
+		})
+	}
+}
+
+func TestMos6502_sed(t *testing.T) {
+	testCases := []struct {
+		name string
+
+		initialDflag bool
+
+		expectedDflag            uint8
+		expectedAdditionalCycles uint8
+	}{
+		{
+			name: "D=false is set to true",
+
+			initialDflag: false,
+
+			expectedDflag:            1,
+			expectedAdditionalCycles: 0,
+		},
+		{
+			name: "D=true stays true",
+
+			initialDflag: true,
+
+			expectedDflag:            1,
+			expectedAdditionalCycles: 0,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			cpu := &Mos6502{
+			}
+			cpu.setStatusFlag(D, tc.initialDflag)
+			additionalCycles := cpu.sed()
+
+			assert.Equal(t, tc.expectedDflag, cpu.GetStatusFlag(D), "incorrect D flag")
+			assert.Equal(t, tc.expectedAdditionalCycles, additionalCycles, "incorrect additional cycles")
+		})
+	}
+}
+
+func TestMos6502_sei(t *testing.T) {
+	testCases := []struct {
+		name string
+
+		initialIflag bool
+
+		expectedIflag            uint8
+		expectedAdditionalCycles uint8
+	}{
+		{
+			name: "I=false is set to true",
+
+			initialIflag: false,
+
+			expectedIflag:            1,
+			expectedAdditionalCycles: 0,
+		},
+		{
+			name: "I=true stays true",
+
+			initialIflag: true,
+
+			expectedIflag:            1,
+			expectedAdditionalCycles: 0,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			cpu := &Mos6502{
+			}
+			cpu.setStatusFlag(I, tc.initialIflag)
+			additionalCycles := cpu.sei()
+
+			assert.Equal(t, tc.expectedIflag, cpu.GetStatusFlag(I), "incorrect I flag")
+			assert.Equal(t, tc.expectedAdditionalCycles, additionalCycles, "incorrect additional cycles")
+		})
+	}
+}
+
+func TestMos6502_sta(t *testing.T) {
+	testCases := []struct {
+		name string
+
+		address word
+		aValue  byte
+
+		expectedBus              *bus.Bus
+		expectedAdditionalCycles uint8
+	}{
+		{
+			name: "accumulator written to address",
+
+			address: 0x0420,
+			aValue:  0x42,
+
+			expectedBus: newBusBuilder().
+				write(0x0420, 0x42).
+				build(),
+			expectedAdditionalCycles: 0,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			cpu := &Mos6502{
+				addressAbsolute: tc.address,
+				a:               tc.aValue,
+				bus: newBusBuilder().build(),
+			}
+			additionalCycles := cpu.sta()
+
+			assert.Equal(t, tc.expectedBus, cpu.bus, "incorrect bus")
+			assert.Equal(t, tc.expectedAdditionalCycles, additionalCycles, "incorrect additional cycles")
+		})
+	}
+}
+
+func TestMos6502_stx(t *testing.T) {
+	testCases := []struct {
+		name string
+
+		address word
+		xValue  byte
+
+		expectedBus              *bus.Bus
+		expectedAdditionalCycles uint8
+	}{
+		{
+			name: "x register written to address",
+
+			address: 0x0420,
+			xValue:  0x42,
+
+			expectedBus: newBusBuilder().
+				write(0x0420, 0x42).
+				build(),
+			expectedAdditionalCycles: 0,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			cpu := &Mos6502{
+				addressAbsolute: tc.address,
+				x:               tc.xValue,
+				bus: newBusBuilder().build(),
+			}
+			additionalCycles := cpu.stx()
+
+			assert.Equal(t, tc.expectedBus, cpu.bus, "incorrect bus")
+			assert.Equal(t, tc.expectedAdditionalCycles, additionalCycles, "incorrect additional cycles")
+		})
+	}
+}
+
+func TestMos6502_sty(t *testing.T) {
+	testCases := []struct {
+		name string
+
+		address word
+		yValue  byte
+
+		expectedBus              *bus.Bus
+		expectedAdditionalCycles uint8
+	}{
+		{
+			name: "y register written to address",
+
+			address: 0x0420,
+			yValue:  0x42,
+
+			expectedBus: newBusBuilder().
+				write(0x0420, 0x42).
+				build(),
+			expectedAdditionalCycles: 0,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			cpu := &Mos6502{
+				addressAbsolute: tc.address,
+				y:               tc.yValue,
+				bus: newBusBuilder().build(),
+			}
+			additionalCycles := cpu.sty()
+
+			assert.Equal(t, tc.expectedBus, cpu.bus, "incorrect bus")
+			assert.Equal(t, tc.expectedAdditionalCycles, additionalCycles, "incorrect additional cycles")
+		})
+	}
+}

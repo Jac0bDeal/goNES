@@ -864,27 +864,39 @@ func (cpu *Mos6502) sbc() uint8 {
 	return 1
 }
 
+// sec is the Set Carry Flag operation.
 func (cpu *Mos6502) sec() uint8 {
+	cpu.setStatusFlag(C, true)
 	return 0
 }
 
+// sed is the Set Decimal Flag operation.
 func (cpu *Mos6502) sed() uint8 {
+	cpu.setStatusFlag(D, true)
 	return 0
 }
 
+// sei is the Set Interrupt Flag operation.
 func (cpu *Mos6502) sei() uint8 {
+	cpu.setStatusFlag(I, true)
 	return 0
 }
 
+// sta is the Store Accumulator at Address operation.
 func (cpu *Mos6502) sta() uint8 {
+	cpu.write(cpu.addressAbsolute, cpu.a)
 	return 0
 }
 
+// stx is the Store X Register at Address operation.
 func (cpu *Mos6502) stx() uint8 {
+	cpu.write(cpu.addressAbsolute, cpu.x)
 	return 0
 }
 
+// sty is the Store Y Register at Address operation.
 func (cpu *Mos6502) sty() uint8 {
+	cpu.write(cpu.addressAbsolute, cpu.y)
 	return 0
 }
 
