@@ -4968,6 +4968,328 @@ func TestMos6502_sty(t *testing.T) {
 	}
 }
 
+func TestMos6502_tax(t *testing.T) {
+	testCases := []struct {
+		name string
+
+		aValue byte
+
+		expectedXvalue           byte
+		expectedZflag            uint8
+		expectedNflag            uint8
+		expectedAdditionalCycles uint8
+	}{
+		{
+			name: "accumulator value assigned to x register",
+
+			aValue: 0x42,
+
+			expectedXvalue:           0x42,
+			expectedZflag:            0,
+			expectedNflag:            0,
+			expectedAdditionalCycles: 0,
+		},
+		{
+			name: "zero value assigned sets Z=true",
+
+			aValue: 0x00,
+
+			expectedXvalue:           0x00,
+			expectedZflag:            1,
+			expectedNflag:            0,
+			expectedAdditionalCycles: 0,
+		},
+		{
+			name: "negative value assigned sets N=true",
+
+			aValue: 0x80,
+
+			expectedXvalue:           0x80,
+			expectedZflag:            0,
+			expectedNflag:            1,
+			expectedAdditionalCycles: 0,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			cpu := &Mos6502{
+				a: tc.aValue,
+			}
+			additionalCycles := cpu.tax()
+
+			assert.Equal(t, tc.expectedXvalue, cpu.x, "incorrect x value")
+			assert.Equal(t, tc.expectedZflag, cpu.GetStatusFlag(Z), "incorrect Z flag")
+			assert.Equal(t, tc.expectedNflag, cpu.GetStatusFlag(N), "incorrect N flag")
+			assert.Equal(t, tc.expectedAdditionalCycles, additionalCycles, "incorrect additional cycles")
+		})
+	}
+}
+
+func TestMos6502_tay(t *testing.T) {
+	testCases := []struct {
+		name string
+
+		aValue byte
+
+		expectedYvalue           byte
+		expectedZflag            uint8
+		expectedNflag            uint8
+		expectedAdditionalCycles uint8
+	}{
+		{
+			name: "accumulator value assigned to y register",
+
+			aValue: 0x42,
+
+			expectedYvalue:           0x42,
+			expectedZflag:            0,
+			expectedNflag:            0,
+			expectedAdditionalCycles: 0,
+		},
+		{
+			name: "zero value assigned sets Z=true",
+
+			aValue: 0x00,
+
+			expectedYvalue:           0x00,
+			expectedZflag:            1,
+			expectedNflag:            0,
+			expectedAdditionalCycles: 0,
+		},
+		{
+			name: "negative value assigned sets N=true",
+
+			aValue: 0x80,
+
+			expectedYvalue:           0x80,
+			expectedZflag:            0,
+			expectedNflag:            1,
+			expectedAdditionalCycles: 0,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			cpu := &Mos6502{
+				a: tc.aValue,
+			}
+			additionalCycles := cpu.tay()
+
+			assert.Equal(t, tc.expectedYvalue, cpu.y, "incorrect y value")
+			assert.Equal(t, tc.expectedZflag, cpu.GetStatusFlag(Z), "incorrect Z flag")
+			assert.Equal(t, tc.expectedNflag, cpu.GetStatusFlag(N), "incorrect N flag")
+			assert.Equal(t, tc.expectedAdditionalCycles, additionalCycles, "incorrect additional cycles")
+		})
+	}
+}
+
+func TestMos6502_tsx(t *testing.T) {
+	testCases := []struct {
+		name string
+
+		stkpValue byte
+
+		expectedXvalue           byte
+		expectedZflag            uint8
+		expectedNflag            uint8
+		expectedAdditionalCycles uint8
+	}{
+		{
+			name: "stack pointer value assigned to x register",
+
+			stkpValue: 0x42,
+
+			expectedXvalue:           0x42,
+			expectedZflag:            0,
+			expectedNflag:            0,
+			expectedAdditionalCycles: 0,
+		},
+		{
+			name: "zero value assigned sets Z=true",
+
+			stkpValue: 0x00,
+
+			expectedXvalue:           0x00,
+			expectedZflag:            1,
+			expectedNflag:            0,
+			expectedAdditionalCycles: 0,
+		},
+		{
+			name: "negative value assigned sets N=true",
+
+			stkpValue: 0x80,
+
+			expectedXvalue:           0x80,
+			expectedZflag:            0,
+			expectedNflag:            1,
+			expectedAdditionalCycles: 0,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			cpu := &Mos6502{
+				stkp: tc.stkpValue,
+			}
+			additionalCycles := cpu.tsx()
+
+			assert.Equal(t, tc.expectedXvalue, cpu.x, "incorrect x value")
+			assert.Equal(t, tc.expectedZflag, cpu.GetStatusFlag(Z), "incorrect Z flag")
+			assert.Equal(t, tc.expectedNflag, cpu.GetStatusFlag(N), "incorrect N flag")
+			assert.Equal(t, tc.expectedAdditionalCycles, additionalCycles, "incorrect additional cycles")
+		})
+	}
+}
+
+func TestMos6502_txa(t *testing.T) {
+	testCases := []struct {
+		name string
+
+		xValue byte
+
+		expectedAvalue           byte
+		expectedZflag            uint8
+		expectedNflag            uint8
+		expectedAdditionalCycles uint8
+	}{
+		{
+			name: "x value assigned to accumulator",
+
+			xValue: 0x42,
+
+			expectedAvalue:           0x42,
+			expectedZflag:            0,
+			expectedNflag:            0,
+			expectedAdditionalCycles: 0,
+		},
+		{
+			name: "zero value assigned sets Z=true",
+
+			xValue: 0x00,
+
+			expectedAvalue:           0x00,
+			expectedZflag:            1,
+			expectedNflag:            0,
+			expectedAdditionalCycles: 0,
+		},
+		{
+			name: "negative value assigned sets N=true",
+
+			xValue: 0x80,
+
+			expectedAvalue:           0x80,
+			expectedZflag:            0,
+			expectedNflag:            1,
+			expectedAdditionalCycles: 0,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			cpu := &Mos6502{
+				x: tc.xValue,
+			}
+			additionalCycles := cpu.txa()
+
+			assert.Equal(t, tc.expectedAvalue, cpu.a, "incorrect a value")
+			assert.Equal(t, tc.expectedZflag, cpu.GetStatusFlag(Z), "incorrect Z flag")
+			assert.Equal(t, tc.expectedNflag, cpu.GetStatusFlag(N), "incorrect N flag")
+			assert.Equal(t, tc.expectedAdditionalCycles, additionalCycles, "incorrect additional cycles")
+		})
+	}
+}
+
+func TestMos6502_txs(t *testing.T) {
+	testCases := []struct {
+		name string
+
+		xValue byte
+
+		expectedStkpValue        byte
+		expectedAdditionalCycles uint8
+	}{
+		{
+			name: "x value assigned to stack pointer",
+
+			xValue: 0x42,
+
+			expectedStkpValue:        0x42,
+			expectedAdditionalCycles: 0,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			cpu := &Mos6502{
+				x: tc.xValue,
+			}
+			additionalCycles := cpu.txs()
+
+			assert.Equal(t, tc.expectedStkpValue, cpu.stkp, "incorrect stack pointer value")
+			assert.Equal(t, tc.expectedAdditionalCycles, additionalCycles, "incorrect additional cycles")
+		})
+	}
+}
+
+func TestMos6502_tya(t *testing.T) {
+	testCases := []struct {
+		name string
+
+		yValue byte
+
+		expectedAvalue           byte
+		expectedZflag            uint8
+		expectedNflag            uint8
+		expectedAdditionalCycles uint8
+	}{
+		{
+			name: "y value assigned to accumulator",
+
+			yValue: 0x42,
+
+			expectedAvalue:           0x42,
+			expectedZflag:            0,
+			expectedNflag:            0,
+			expectedAdditionalCycles: 0,
+		},
+		{
+			name: "zero value assigned sets Z=true",
+
+			yValue: 0x00,
+
+			expectedAvalue:           0x00,
+			expectedZflag:            1,
+			expectedNflag:            0,
+			expectedAdditionalCycles: 0,
+		},
+		{
+			name: "negative value assigned sets N=true",
+
+			yValue: 0x80,
+
+			expectedAvalue:           0x80,
+			expectedZflag:            0,
+			expectedNflag:            1,
+			expectedAdditionalCycles: 0,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			cpu := &Mos6502{
+				y: tc.yValue,
+			}
+			additionalCycles := cpu.tya()
+
+			assert.Equal(t, tc.expectedAvalue, cpu.a, "incorrect a value")
+			assert.Equal(t, tc.expectedZflag, cpu.GetStatusFlag(Z), "incorrect Z flag")
+			assert.Equal(t, tc.expectedNflag, cpu.GetStatusFlag(N), "incorrect N flag")
+			assert.Equal(t, tc.expectedAdditionalCycles, additionalCycles, "incorrect additional cycles")
+		})
+	}
+}
+
 func TestMos6502_xxx(t *testing.T) {
 	cpu := &Mos6502{}
 	additionalCycles := cpu.xxx()

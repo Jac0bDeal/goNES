@@ -900,27 +900,49 @@ func (cpu *Mos6502) sty() uint8 {
 	return 0
 }
 
+// tax is the Transfer Accumulator to X Register operation.
 func (cpu *Mos6502) tax() uint8 {
+	cpu.x = cpu.a
+	cpu.setStatusFlag(Z, cpu.x == 0x00)
+	cpu.setStatusFlag(N, (cpu.x&0x80) > 0)
 	return 0
 }
 
+// tay is the Transfer Accumulator to Y Register operation.
 func (cpu *Mos6502) tay() uint8 {
+	cpu.y = cpu.a
+	cpu.setStatusFlag(Z, cpu.y == 0x00)
+	cpu.setStatusFlag(N, (cpu.y&0x80) > 0)
 	return 0
 }
 
+// tsx is the Transfer Stack Pointer to X Register operation.
 func (cpu *Mos6502) tsx() uint8 {
+	cpu.x = cpu.stkp
+	cpu.setStatusFlag(Z, cpu.x == 0x00)
+	cpu.setStatusFlag(N, (cpu.x&0x80) > 0)
 	return 0
 }
 
+// tax is the Transfer X Register to Accumulator operation.
 func (cpu *Mos6502) txa() uint8 {
+	cpu.a = cpu.x
+	cpu.setStatusFlag(Z, cpu.a == 0x00)
+	cpu.setStatusFlag(N, (cpu.a&0x80) > 0)
 	return 0
 }
 
+// txs is the Transfer X Register to Stack Pointer operation.
 func (cpu *Mos6502) txs() uint8 {
+	cpu.stkp = cpu.x
 	return 0
 }
 
+// tya is the Transfer Y Register to Accumulator operation.
 func (cpu *Mos6502) tya() uint8 {
+	cpu.a = cpu.y
+	cpu.setStatusFlag(Z, cpu.a == 0x00)
+	cpu.setStatusFlag(N, (cpu.a&0x80) > 0)
 	return 0
 }
 
