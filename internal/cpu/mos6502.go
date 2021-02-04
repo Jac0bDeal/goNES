@@ -924,6 +924,7 @@ func (cpu *Mos6502) tya() uint8 {
 	return 0
 }
 
+// xxx represents an unofficial opcode.
 func (cpu *Mos6502) xxx() uint8 {
 	return 0
 }

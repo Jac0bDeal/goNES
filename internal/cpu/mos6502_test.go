@@ -4882,7 +4882,7 @@ func TestMos6502_sta(t *testing.T) {
 			cpu := &Mos6502{
 				addressAbsolute: tc.address,
 				a:               tc.aValue,
-				bus: newBusBuilder().build(),
+				bus:             newBusBuilder().build(),
 			}
 			additionalCycles := cpu.sta()
 
@@ -4920,7 +4920,7 @@ func TestMos6502_stx(t *testing.T) {
 			cpu := &Mos6502{
 				addressAbsolute: tc.address,
 				x:               tc.xValue,
-				bus: newBusBuilder().build(),
+				bus:             newBusBuilder().build(),
 			}
 			additionalCycles := cpu.stx()
 
@@ -4958,7 +4958,7 @@ func TestMos6502_sty(t *testing.T) {
 			cpu := &Mos6502{
 				addressAbsolute: tc.address,
 				y:               tc.yValue,
-				bus: newBusBuilder().build(),
+				bus:             newBusBuilder().build(),
 			}
 			additionalCycles := cpu.sty()
 
@@ -4966,4 +4966,11 @@ func TestMos6502_sty(t *testing.T) {
 			assert.Equal(t, tc.expectedAdditionalCycles, additionalCycles, "incorrect additional cycles")
 		})
 	}
+}
+
+func TestMos6502_xxx(t *testing.T) {
+	cpu := &Mos6502{}
+	additionalCycles := cpu.xxx()
+	assert.Equal(t, uint8(0), additionalCycles)
+	assert.Equal(t, &Mos6502{}, cpu)
 }
